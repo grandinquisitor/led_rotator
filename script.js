@@ -618,6 +618,240 @@ registerShader(
     }
 );
 
+registerShader(
+    "gradient_field",
+    "Generates a gradient field where the angle changes smoothly based on the position.",
+    [
+        p('gradient_x', ParamTypes.NUMBER, 1.0,
+            "Gradient in the x-direction.",
+            { min: -10, max: 10, step: 0.1 }),
+        p('gradient_y', ParamTypes.NUMBER, 1.0,
+            "Gradient in the y-direction.",
+            { min: -10, max: 10, step: 0.1 })
+    ],
+    (args, params) => Math.atan2(args.dy * params.gradient_y, args.dx * params.gradient_x)
+);
+
+registerShader(
+    "wormhole_twist",
+    "Combines a logarithmic spiral with a sinusoidal twist, simulating a wormhole-like distortion.",
+    [
+        p('growth_rate', ParamTypes.NUMBER, 0.2,
+            "Controls the tightness of the spiral twist.",
+            { min: 0.1, max: 10, step: 0.1 }),
+        p('twist_amplitude', ParamTypes.PERCENT, 0.5,
+            "Amplitude of the sinusoidal twist effect."),
+        p('twist_frequency', ParamTypes.NUMBER, 5,
+            "Frequency of the twist oscillation.",
+            { min: 0.1, max: null, step: 0.5 })
+    ],
+    (args, params) => {
+        const spiral = params.growth_rate * Math.log(args.radius + 1);
+        const twist = params.twist_amplitude * Math.sin(params.twist_frequency * args.radius);
+        return args.radial_angle + spiral + twist;
+    }
+);
+
+registerShader(
+    "kaleidoscopic_reflection",
+    "Divides the circle into sectors and reflects the angle into one mirror segment for a kaleidoscopic effect.",
+    [
+        p('sectors', ParamTypes.INTEGER, 6,
+            "Number of mirror sectors.",
+            { min: 2, max: null, step: 1 }),
+        p('offset', ParamTypes.ANGLE, 0,
+            "Angular offset to rotate the sectors.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+    ],
+    (args, params) => {
+        const sectorAngle = 2 * Math.PI / params.sectors;
+        // Adjust the angle by the offset and normalize into [0, 2π)
+        let adjusted = (args.radial_angle - params.offset) % (2 * Math.PI);
+        if (adjusted < 0) adjusted += 2 * Math.PI;
+        // Map the adjusted angle into the current sector
+        let local = adjusted % sectorAngle;
+        // Reflect the angle if it is in the second half of the sector
+        if (local > sectorAngle / 2) local = sectorAngle - local;
+        return local + params.offset;
+    }
+);
+
+registerShader(
+    "perlin_rotation",
+    "Uses Perlin-like noise to create organic angular variations.",
+    [
+        p('scale', ParamTypes.NUMBER, 2.0,
+            "Scale of the noise pattern.",
+            { min: 0.1, max: 10, step: 0.1 }),
+        p('amplitude', ParamTypes.NUMBER, 1.5,
+            "Amplitude of the angular variation.",
+            { min: 0, max: 3, step: 0.1 })
+    ],
+    (args, params) => {
+        // Simple Perlin-like noise using multiple sine waves at different frequencies
+        const noise =
+            Math.sin(args.dx * params.scale + args.dy * 1.3) * 0.5 +
+            Math.sin(args.dx * params.scale * 2.1 + args.dy * 0.9) * 0.25 +
+            Math.sin(args.dx * 0.7 + args.dy * params.scale * 1.7) * 0.125 +
+            Math.sin(args.dx * 2.3 + args.dy * params.scale * 2.9) * 0.0625;
+
+        return args.radial_angle + noise * params.amplitude;
+    }
+);
+
+registerShader(
+    "quadrant_director",
+    "Assigns different angles to each quadrant for clear direction patterns at low resolution.",
+    [
+        p('offset', ParamTypes.ANGLE, 0,
+            "Angular offset applied to all quadrants.",
+            { min: 0, max: Math.PI, step: Math.PI / 4 }),
+    ],
+    (args, params) => {
+        // Determine quadrant (simplified to just positive/negative x and y)
+        const x_positive = (args.dx >= 0);
+        const y_positive = (args.dy >= 0);
+
+        // Assign different angles to each quadrant
+        if (x_positive && y_positive) return params.offset;          // Top right: 0° (right)
+        if (!x_positive && y_positive) return Math.PI / 2 + params.offset; // Top left: 90° (up)
+        if (!x_positive && !y_positive) return Math.PI + params.offset;  // Bottom left: 180° (left)
+        return 3 * Math.PI / 2 + params.offset;                              // Bottom right: 270° (down)
+    }
+);
+
+registerShader(
+    "binary_grid",
+    "Creates a simple binary checkerboard pattern ideal for very low resolution.",
+    [
+        p('grid_size', ParamTypes.INTEGER, 2,
+            "Size of the grid cells.",
+            { min: 1, max: 10, step: 1 }),
+        p('angle1', ParamTypes.ANGLE, 0,
+            "Angle for the first grid cells.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 4 }),
+        p('angle2', ParamTypes.ANGLE, Math.PI/2,
+            "Angle for the second grid cells.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 4 })
+    ],
+    (args, params) => {
+        // Create a grid based on integer coordinates
+        const gridX = Math.floor(args.dx * params.grid_size + 100) % 2; // +100 to handle negative coordinates
+        const gridY = Math.floor(args.dy * params.grid_size + 100) % 2;
+
+        // Use XOR to create a checkerboard pattern
+        return (gridX ^ gridY) ? params.angle1 : params.angle2;
+    }
+);
+
+registerShader(
+    "pixel_sector",
+    "Divides the space into discrete sectors for clear visual differentiation at low resolutions.",
+    [
+        p('sectors', ParamTypes.INTEGER, 4,
+            "Number of angular sectors to divide the space into.",
+            { min: 2, max: 16, step: 1 }),
+        p('offset', ParamTypes.ANGLE, 0,
+            "Angular offset for the sectors.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 8 })
+    ],
+    (args, params) => {
+        // Quantize the angle to a discrete sector
+        const sectorSize = 2 * Math.PI / params.sectors;
+        const sectorIndex = Math.floor((args.radial_angle + params.offset) / sectorSize);
+        // Return the center angle of the sector
+        if (params.sectors == 2) {
+            // if two sectors, would otherwise map to 0 & 180°, which looks identical.
+            return sectorIndex * sectorSize / 2 + sectorSize / 2;
+        } else {
+            return sectorIndex * sectorSize + sectorSize / 2;
+        }
+    }
+);
+
+registerShader(
+    "macro_pixel",
+    "Groups pixels into larger 'macro pixels' with consistent angles, ideal for very low resolution.",
+    [
+        p('pixel_size', ParamTypes.INTEGER, 4,
+            "Size of each macro pixel (higher = fewer distinct regions).",
+            { min: 2, max: 10, step: 1 }),
+        p('angle_count', ParamTypes.INTEGER, 4,
+            "Number of distinct angles to use.",
+            { min: 2, max: 8, step: 1 })
+    ],
+    (args, params) => {
+        // Group coordinates into larger pixels
+        const macroX = Math.floor(args.dx * params.pixel_size);
+        const macroY = Math.floor(args.dy * params.pixel_size);
+
+        // Create a deterministic but seemingly random angle for each macro pixel
+        const pixelValue = ((macroX * 7919) ^ (macroY * 104729)) % params.angle_count;
+
+        // Map to evenly distributed angles
+        return (pixelValue * (2 * Math.PI / params.angle_count));
+    }
+);
+
+registerShader(
+    "harmonic_resonance",
+    "Layers two sine waves at different frequencies and phases to produce a resonant modulation of the angle.",
+    [
+        p('amplitude1', ParamTypes.PERCENT, 0.3,
+            "Amplitude of the first harmonic."),
+        p('frequency1', ParamTypes.NUMBER, 3,
+            "Frequency of the first harmonic.",
+            { min: 0.1, max: null, step: 0.1 }),
+        p('phase1', ParamTypes.ANGLE, 0,
+            "Phase offset of the first harmonic.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
+        p('amplitude2', ParamTypes.PERCENT, 0.2,
+            "Amplitude of the second harmonic."),
+        p('frequency2', ParamTypes.NUMBER, 5,
+            "Frequency of the second harmonic.",
+            { min: 0.1, max: null, step: 0.1 }),
+        p('phase2', ParamTypes.ANGLE, Math.PI / 4,
+            "Phase offset of the second harmonic.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+    ],
+    (args, params) => {
+        const harmonic1 = params.amplitude1 * Math.sin(params.frequency1 * args.radius + params.phase1);
+        const harmonic2 = params.amplitude2 * Math.sin(params.frequency2 * args.radius + params.phase2);
+        return args.radial_angle + harmonic1 + harmonic2;
+    }
+);
+
+registerShader(
+    "spiral_galaxy",
+    "Simulates a spiral galaxy with arms that rotate around the center.",
+    [
+        p('arm_count', ParamTypes.INTEGER, 3,
+            "Number of spiral arms.",
+            { min: 1, max: 10, step: 1 }),
+        p('arm_tightness', ParamTypes.NUMBER, 0.2,
+            "Controls how tightly the arms are wound.",
+            { min: 0.1, max: 1, step: 0.1 })
+    ],
+    (args, params) => {
+        const angle_per_arm = (2 * Math.PI) / params.arm_count;
+        const arm = Math.floor(args.radial_angle / angle_per_arm);
+        return args.radial_angle + arm * angle_per_arm + args.radius * params.arm_tightness;
+    }
+);
+
+registerShader(
+    "radial_symmetry",
+    "Creates a radially symmetric pattern where the angle is repeated at regular intervals.",
+    [
+        p('symmetry_count', ParamTypes.INTEGER, 6,
+            "Number of symmetric sections.",
+            { min: 1, max: 12, step: 1 })
+    ],
+    (args, params) => args.radial_angle % (2 * Math.PI / params.symmetry_count)
+);
+
+// #region computation/rendering
+
 // Compute the centroid of the points.
 function computeCentroid(points, centralObject = null) {
     if (centralObject) {
