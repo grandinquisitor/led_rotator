@@ -38,20 +38,21 @@
     </div>
     <canvas id="canvas" width="800" height="600"></canvas>
 
-        <!-- Import Modal -->
-        <div id="import-modal" class="modal">
-            <div class="modal-content">
-                <h3>Import CSV</h3>
-                <textarea id="import-csv-text" placeholder="Paste CSV data here (label,x,y)"></textarea>
-                <div id="import-error"></div>
-                <div>
-                    <button id="import-submit">Import</button>
-                    <button id="import-cancel">Cancel</button>
-                </div>
+    <!-- Import Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <h3>Import CSV</h3>
+            <div>Columns: label, x, y (mm)</div>
+            <textarea id="import-csv-text" placeholder="Paste CSV data here (label,x,y)"></textarea>
+            <div id="import-error"></div>
+            <div>
+                <button id="import-submit">Import</button>
+                <button id="import-cancel">Cancel</button>
             </div>
         </div>
+    </div>
 
-            <!-- Export Modal -->
+    <!-- Export Modal -->
     <div id="export-modal" class="modal">
         <div class="modal-content">
             <h3>Export CSV</h3>
