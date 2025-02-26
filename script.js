@@ -730,7 +730,7 @@ registerShader(
         p('angle1', ParamTypes.ANGLE, 0,
             "Angle for the first grid cells.",
             { min: 0, max: 2 * Math.PI, step: Math.PI / 4 }),
-        p('angle2', ParamTypes.ANGLE, Math.PI/2,
+        p('angle2', ParamTypes.ANGLE, Math.PI / 2,
             "Angle for the second grid cells.",
             { min: 0, max: 2 * Math.PI, step: Math.PI / 4 })
     ],
