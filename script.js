@@ -93,7 +93,6 @@ function savePointsToCSV() {
     localStorage.setItem('led-points-csv', csv);
 }
 
-
 // #region Shader Definitions
 class ParamType {
     constructor(name, defaultValue, jsType, validator) {
@@ -1047,7 +1046,11 @@ function populateShaderParams() {
                 valueDisplay.style.fontSize = '0.9rem';
 
                 input.addEventListener('input', () => {
-                    valueDisplay.textContent = parseFloat(input.value).toFixed(2);
+                    if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
+                        valueDisplay.textContent = parseInt(input.value);
+                    } else {
+                        valueDisplay.textContent = parseFloat(input.value).toFixed(2);
+                    }
                 });
 
                 labelElem.appendChild(valueDisplay);
