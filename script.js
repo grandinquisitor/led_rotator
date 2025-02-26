@@ -1046,7 +1046,11 @@ function populateShaderParams() {
                 valueDisplay.style.fontSize = '0.9rem';
 
                 input.addEventListener('input', () => {
-                    if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
+                    if (param.paramType === ParamTypes.ANGLE) {
+                        // Convert radians to degrees
+                        const degrees = input.value * (180 / Math.PI);
+                        valueDisplay.textContent = Math.round(degrees) + '°';
+                    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
                         valueDisplay.textContent = parseInt(input.value);
                     } else {
                         valueDisplay.textContent = parseFloat(input.value).toFixed(2);
