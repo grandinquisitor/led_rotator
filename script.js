@@ -113,7 +113,6 @@ const ParamTypes = Object.freeze({
     PERCENT: new ParamType('PERCENT', 0, 'number', v => v >= 0 && v <= 1),
     ANGLE: new ParamType('ANGLE', 0, 'number', v => v >= 0 && v <= 2 * Math.PI),
     BOOLEAN: new ParamType('BOOLEAN', 0, 'boolean', value => typeof value === 'boolean'),
-    SHADER: new ParamType('SHADER', 'null', 'string', v => typeof v === 'string')
 });
 
 class Param {
