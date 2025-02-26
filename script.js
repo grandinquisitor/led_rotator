@@ -193,7 +193,7 @@ registerShader("radial_wave",
 
 // Perpendicular Rotation: Rotates the angle to be perpendicular to the radial direction.
 registerShader(
-    "perpendicular_rotation",
+    "radial_perpendicular",
     "Rotates the angle by subtracting the radial angle from 90 degrees, resulting in a perpendicular orientation.",
     [],
     (args) =>
@@ -305,12 +305,19 @@ registerShader(
 
 
 // Centroid Rotation: Returns the unmodified radial angle.
-registerShader("centroid_rotation", "Returns the original radial angle, effectively centering the rotation.",
+registerShader("radial", "Returns the original radial angle, effectively centering the rotation.",
     [],
     (args) => args.radial_angle);
 
 // Centroid Rotation: Returns the unmodified radial angle.
-registerShader("circle_rotation", "Returns the original radial angle, effectively centering the rotation.",
+registerShader("radial_offset", "Returns the original radial angle, effectively centering the rotation.",
+    [p('offset', ParamTypes.ANGLE, 0, "Angular offset applied to the radial angle.",
+        { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }
+    )],
+    (args, params) => args.radial_angle + params.offset);
+
+// Centroid Rotation: Returns the unmodified radial angle.
+registerShader("radial_circle", "Returns the original radial angle, effectively centering the rotation.",
     [],
     (args) => args.radial_angle + Math.PI / 2);
 
