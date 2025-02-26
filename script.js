@@ -1,3 +1,4 @@
+// #region data
 // Example set of points (label, x, y)
 let points = [
     ['D01', 17.018, 17.018],
@@ -93,7 +94,7 @@ function savePointsToCSV() {
 }
 
 
-// Shader registry implementation
+// #region Shader Definitions
 class ParamType {
     constructor(name, defaultValue, jsType, validator) {
         this.name = name;
@@ -175,7 +176,7 @@ function registerShader(name, description, paramDefs, shaderFn) {
     shaderRegistry[name] = { params: paramDefs, fn: shaderFn, desc: description };
 }
 
-// Shader definitions
+// #region Shader Implementations
 
 // Radial Wave: Modulates the radial angle with a sine wave based on radius.
 registerShader("radial_wave",
@@ -728,7 +729,8 @@ function visualize(pointsWithAngles, options = {}) {
     ctx.restore();
 }
 
-// UI Management
+// #region UI management
+
 function populateShaderSelect() {
     const select = document.getElementById('shader-select');
     const shaderNames = Object.keys(shaderRegistry);
@@ -824,6 +826,8 @@ function updateVisualization() {
     );
     visualize(pointsWithAngles);
 }
+
+// #region DOM init
 
 document.addEventListener('DOMContentLoaded', () => {
 
