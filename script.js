@@ -986,9 +986,9 @@ function populateShaderSelect() {
 
     function snakeToReadable(snakeCase) {
         return snakeCase
-          .replace(/_/g, ' ') // Replace underscores with spaces
-          .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
-      }
+            .replace(/_/g, ' ') // Replace underscores with spaces
+            .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
+    }
 
     select.innerHTML = shaderNames
         .map(name => `<option value="${name}">${snakeToReadable(name)}</option>`)
