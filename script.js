@@ -946,6 +946,14 @@ function visualize(pointsWithAngles, options = {}) {
         ctx.strokeStyle = 'black';
         ctx.fillRect(- (ledWidth * scale) / 2, - (ledHeight * scale) / 2, ledWidth * scale, ledHeight * scale);
         ctx.strokeRect(- (ledWidth * scale) / 2, - (ledHeight * scale) / 2, ledWidth * scale, ledHeight * scale);
+
+        // Add direction indicator
+        ctx.beginPath();
+        ctx.moveTo((ledWidth * scale) / 2, 0);
+        ctx.lineTo((ledWidth * scale) / 2 + 3, 0);
+        ctx.strokeStyle = '#e74c3c';
+        ctx.stroke();
+
         ctx.restore();
 
         // Draw the label near the LED.
