@@ -1037,23 +1037,25 @@ function populateShaderParams() {
             } else if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
                 input.type = 'range';
 
+                function formatValue(value, param) {
+                    if (param.paramType === ParamTypes.ANGLE) {
+                        return Math.round(value * (180 / Math.PI)) + '°';
+                    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
+                        return parseInt(value);
+                    } else {
+                        return parseFloat(value).toFixed(2);
+                    }
+                }
+
                 // Add value display for sliders
                 const valueDisplay = document.createElement('span');
                 valueDisplay.classList.add('value-display');
-                valueDisplay.textContent = param.defaultValue;
+                valueDisplay.textContent = formatValue(param.defaultValue, param);
                 valueDisplay.style.marginLeft = '8px';
                 valueDisplay.style.fontSize = '0.9rem';
 
                 input.addEventListener('input', () => {
-                    if (param.paramType === ParamTypes.ANGLE) {
-                        // Convert radians to degrees
-                        const degrees = input.value * (180 / Math.PI);
-                        valueDisplay.textContent = Math.round(degrees) + '°';
-                    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
-                        valueDisplay.textContent = parseInt(input.value);
-                    } else {
-                        valueDisplay.textContent = parseFloat(input.value).toFixed(2);
-                    }
+                    valueDisplay.textContent = formatValue(input.value, param);
                 });
 
                 labelElem.appendChild(valueDisplay);
