@@ -311,7 +311,7 @@ registerShader("radial", "Returns the original radial angle as the led angle, ef
 registerShader("polar_simple", "Set the angle according to simple polar effects.",
     [
         p('angle_effect', ParamTypes.ANGLE, 0, "Angular offset applied to the radial angle.",
-            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
         p('distance_effect', ParamTypes.PERCENT, 0, "Distance effect."),
         p('invert_distance', ParamTypes.BOOLEAN, 0, "Invert distance.")
     ],
