@@ -310,10 +310,10 @@ registerShader("radial", "Returns the original radial angle as the led angle, ef
 
 registerShader("polar_simple", "Set the angle according to simple polar effects.",
     [
-        p('angle_effect', ParamTypes.ANGLE, 0, "Angular offset applied to the radial angle.",
+        p('angle_effect', ParamTypes.ANGLE, 0, "Size of the effect of the polar theta.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
-        p('distance_effect', ParamTypes.PERCENT, 0, "Distance effect."),
-        p('invert_distance', ParamTypes.BOOLEAN, 0, "Invert distance.")
+        p('distance_effect', ParamTypes.PERCENT, 0, "Size of the effect of the radius."),
+        p('invert_distance', ParamTypes.BOOLEAN, 0, "Invert radius; closer points affected more.")
     ],
     (args, params) =>
         args.radial_angle + params.angle_effect + (2 * Math.PI * (params.invert_distance ? 1 - args.radius : args.radius) * params.distance_effect)
