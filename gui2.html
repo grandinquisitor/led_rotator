@@ -345,6 +345,404 @@
             ],
             (args, params) => args.radial_angle + args.radius * params.multiplier);
 
+
+        // Chaotic Rotation: Combines sine and cosine modulations for a chaotic effect.
+        registerShader(
+            "chaotic_rotation",
+            "Creates a chaotic rotation effect by combining sinusoidal and cosinusoidal modulations of the radial angle.",
+            [
+                p('radius_factor', ParamTypes.NUMBER, 0.5,
+                    "Factor controlling the influence of the radial distance on the sine modulation.",
+                    { min: 0, max: null, step: 0.01 }),
+                p('dx_factor', ParamTypes.NUMBER, 0.3,
+                    "Factor controlling the influence of the horizontal displacement (dx) on the cosine modulation.",
+                    { min: 0, max: null, step: 0.01 })
+            ],
+            (args, params) =>
+                args.radial_angle +
+                Math.sin(args.radius * params.radius_factor) +
+                Math.cos(args.dx * params.dx_factor)
+        );
+
+        // Chaotic Attractor: Uses arctan and sine modulations to simulate attractor dynamics.
+        registerShader(
+            "chaotic_attractor",
+            "Generates a chaotic attractor effect by combining arctan and sinusoidal modulations based on directional components.",
+            [
+                p('dy_scale', ParamTypes.NUMBER, 1.3,
+                    "Scaling factor for the vertical component (dy) in the arctan calculation.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('dx_scale', ParamTypes.NUMBER, 0.7,
+                    "Scaling factor for the horizontal component (dx) in the arctan calculation.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('product_factor', ParamTypes.NUMBER, 0.05,
+                    "Factor that scales the product of dx and dy for the sinusoidal modulation.",
+                    { min: 0, max: null, step: 0.01 })
+            ],
+            (args, params) =>
+                Math.atan2(args.dy * params.dy_scale, args.dx * params.dx_scale) +
+                Math.sin(args.dx * args.dy * params.product_factor)
+        );
+
+        // Pulsar Rotation: Alternates the rotation angle in a pulsing manner.
+        registerShader(
+            "pulsar_rotation",
+            "Generates a pulsating rotational effect where the angle alternates based on a pulse count, scaling, and phase shift.",
+            [
+                p('pulse_count', ParamTypes.INTEGER, 6,
+                    "Number of pulses defining how many alternations occur as radius increases.",
+                    { min: 1, max: null, step: 1 }),
+                p('scaling', ParamTypes.NUMBER, 5,
+                    "Scaling factor that determines the radial distance at which pulses occur.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('phase_shift', ParamTypes.ANGLE, Math.PI / 2,
+                    "Fixed angular offset applied when a pulse occurs, shifting the rotation.",
+                    { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+            ],
+            (args, params) => {
+                const pulse = Math.floor(args.radius * params.pulse_count / params.scaling);
+                return args.radial_angle + (pulse % 2) * params.phase_shift;
+            });
+
+        // Fibonacci Rotation: Applies the golden angle to create a Fibonacci spiral.
+        registerShader(
+            "fibonacci_rotation",
+            "Uses the golden angle to rotate points, creating a Fibonacci spiral distribution.",
+            [],
+            (args) => {
+                const golden_angle = Math.PI * (3 - Math.sqrt(5));
+                return args.radial_angle + golden_angle * args.radius;
+            });
+
+        // Lissajous Rotation: Generates a Lissajous curve–inspired pattern.
+        registerShader(
+            "lissajous_rotation",
+            "Applies a Lissajous curve-inspired rotation by combining different frequencies and a phase offset.",
+            [
+                p('freq_x', ParamTypes.NUMBER, 3,
+                    "Frequency factor affecting the modulation of the horizontal (x) component.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('freq_y', ParamTypes.NUMBER, 2,
+                    "Frequency factor affecting the modulation of the vertical (y) component.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('phase_offset', ParamTypes.NUMBER, Math.PI / 4,
+                    "Constant phase offset added to the computed Lissajous pattern.",
+                    { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+            ],
+            (args, params) => {
+                const phase = Math.atan2(
+                    Math.sin(args.dy * params.freq_y),
+                    Math.cos(args.dx * params.freq_x)
+                );
+                return phase + params.phase_offset;
+            });
+
+
+        // Centroid Rotation: Returns the unmodified radial angle.
+        registerShader("centroid_rotation", "Returns the original radial angle, effectively centering the rotation.",
+            [],
+            (args) => args.radial_angle);
+
+        // Centroid Rotation: Returns the unmodified radial angle.
+        registerShader("circle_rotation", "Returns the original radial angle, effectively centering the rotation.",
+            [],
+            (args) => args.radial_angle + Math.PI / 2);
+
+        // Flower Pattern: Creates a petal-like pattern using sinusoidal modulation.
+        registerShader(
+            "flower",
+            "Generates a flower-like pattern by modulating the radial angle with a sinusoidal function.",
+            [
+                p('petals', ParamTypes.INTEGER, 5,
+                    "Number of petals (controls the frequency of the sinusoidal pattern creating petal shapes).",
+                    { min: 1, max: null, step: 1 }),
+                p('intensity', ParamTypes.PERCENT, 0.3,
+                    "Intensity of the petal effect, determining how strongly the angle is modulated.")
+            ], (args, params) =>
+            args.radial_angle + Math.sin(args.radial_angle * params.petals) * params.intensity
+        );
+
+        // Pinwheel Shader: Creates a flower-like rotation pattern with a radial offset.
+        registerShader(
+            "pinwheel",
+            "Generates a flower-like pattern by modulating the radial angle with a sinusoidal function of the petal count and intensity.",
+            [
+                p('strength', ParamTypes.NUMBER, 0.2,
+                    "Rotation strength that scales the effect of the radius on the angle, forming the pinwheel.",
+                    { min: 0, max: null, step: 0.01 }),
+                p('offset', ParamTypes.ANGLE, Math.PI / 4,
+                    "Angular offset that shifts the base orientation of the pinwheel pattern.",
+                    { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+            ],
+            (args, params) =>
+                args.radial_angle + params.strength * args.radius + params.offset
+        );
+
+        // Fixed Angle: Uses a constant angle regardless of input.
+        registerShader("fixed", "Fixed angle.",
+            [
+                p('angle', ParamTypes.ANGLE, Math.PI / 2,
+                    "The fixed angle value that overrides any computed rotation.",
+                    { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+            ],
+            (args, params) =>
+                params.angle
+        );
+
+        // Quantum Spin: Quantizes the angle into discrete steps to simulate quantum spin.
+        registerShader(
+            "quantum_spin",
+            "Quantizes the rotation into discrete spin states, simulating a quantum spin effect.",
+            [
+                p('spin_states', ParamTypes.INTEGER, 8,
+                    "Number of discrete spin states; higher values yield finer angular quantization.",
+                    { min: 2, max: null, step: 1 })
+            ], (args, params) => {
+                const quantized = Math.round(args.radial_angle * params.spin_states / (2 * Math.PI)) *
+                    (2 * Math.PI / params.spin_states);
+                return quantized + Math.PI / params.spin_states;
+            });
+
+        // Magnetic Dipole: Simulates a magnetic dipole field using vector calculations.
+        registerShader(
+            "magnetic_dipole",
+            "Simulates the magnetic dipole field by computing a field vector and returning its angle, creating complex rotational patterns.",
+            [
+                p('t', ParamTypes.ANGLE, 0,
+                    "Angle representing the orientation of the dipole's magnetic moment."),
+                p('scale', ParamTypes.NUMBER, 3,
+                    "Scaling factor that adjusts the overall strength of the dipole field simulation.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('exponent1', ParamTypes.NUMBER, 2.5,
+                    "Exponent controlling the falloff rate of the dipole field's directional component.",
+                    { min: 0, max: null, step: 0.1 }),
+                p('exponent2', ParamTypes.NUMBER, 1.5,
+                    "Exponent controlling the falloff rate of the dipole field's direct contribution.",
+                    { min: 0, max: null, step: 0.1 })
+            ],
+            (args, params) => {
+                const m_x = Math.cos(params.t);
+                const m_y = Math.sin(params.t);
+                const r_sq = args.dx ** 2 + args.dy ** 2;
+                const Bx = params.scale * args.dx * (m_x * args.dx + m_y * args.dy) /
+                    r_sq ** params.exponent1 - m_x / r_sq ** params.exponent2;
+                const By = params.scale * args.dy * (m_x * args.dx + m_y * args.dy) /
+                    r_sq ** params.exponent1 - m_y / r_sq ** params.exponent2;
+                return Math.atan2(By, Bx);
+            });
+
+        // Random
+        registerShader(
+            "random", null, [], (args, params) => Math.random() * 2 * Math.PI);
+
+        registerShader(
+            "vortex",
+            "Creates a swirling vortex effect with intensity increasing toward the center.",
+            [
+                p('intensity', ParamTypes.NUMBER, 2.0,
+                    "Controls how strong the vortex effect becomes at the center.",
+                    { min: 0.1, max: 10, step: 0.1 }),
+                p('falloff', ParamTypes.NUMBER, 1.5,
+                    "Determines how quickly the effect diminishes with distance.",
+                    { min: 0.1, max: 5, step: 0.1 })
+            ],
+            (args, params) =>
+                args.radial_angle + (params.intensity / (args.radius ** params.falloff + 0.01))
+        );
+
+        registerShader(
+            "moire_pattern",
+            "Generates moiré interference patterns by combining multiple circular patterns.",
+            [
+                p('frequency1', ParamTypes.NUMBER, 10,
+                    "Frequency of the first circular pattern.",
+                    { min: 1, max: 50, step: 0.5 }),
+                p('frequency2', ParamTypes.NUMBER, 11,
+                    "Frequency of the second circular pattern.",
+                    { min: 1, max: 50, step: 0.5 }),
+                p('amplitude', ParamTypes.NUMBER, 0.3,
+                    "Strength of the interference pattern effect.",
+                    { min: 0, max: 1, step: 0.05 })
+            ],
+            (args, params) =>
+                args.radial_angle + params.amplitude * (
+                    Math.sin(args.radius * params.frequency1) *
+                    Math.sin(args.radius * params.frequency2)
+                )
+        );
+
+        registerShader(
+            "fractal_noise",
+            "Creates organic, fractal-like patterns using noise functions.",
+            [
+                p('scale', ParamTypes.NUMBER, 3.0,
+                    "Scale of the noise pattern.",
+                    { min: 0.1, max: 10, step: 0.1 }),
+                p('octaves', ParamTypes.INTEGER, 3,
+                    "Number of noise layers to combine.",
+                    { min: 1, max: 8, step: 1 }),
+                p('persistence', ParamTypes.NUMBER, 0.5,
+                    "How much each octave contributes to the final result.",
+                    { min: 0.1, max: 0.9, step: 0.05 })
+            ],
+            (args, params) => {
+                // Simple pseudo-noise implementation
+                let value = 0;
+                let amplitude = 1;
+                let frequency = 1;
+                let maxValue = 0;
+
+                for (let i = 0; i < params.octaves; i++) {
+                    // Create noise-like values using sine functions at different frequencies
+                    const nx = Math.sin(args.dx * frequency * params.scale + args.dy * 0.7);
+                    const ny = Math.sin(args.dy * frequency * params.scale + args.dx * 0.7);
+                    value += amplitude * (nx * ny);
+
+                    maxValue += amplitude;
+                    amplitude *= params.persistence;
+                    frequency *= 2;
+                }
+
+                // Normalize and convert to angle
+                const normalized = (value / maxValue + 1) / 2;
+                return normalized * 2 * Math.PI;
+            }
+        );
+
+        registerShader(
+            "logarithmic_spiral",
+            "Generates a logarithmic spiral pattern with controllable tightness.",
+            [
+                p('growth_rate', ParamTypes.NUMBER, 0.2,
+                    "Controls how tightly the spiral winds (smaller values create tighter spirals).",
+                    { min: 0.05, max: 1, step: 0.05 })
+            ],
+            (args, params) =>
+                args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
+        );
+
+        registerShader(
+            "wave_interference",
+            "Simulates the interference pattern of multiple waves emanating from different points.",
+            [
+                p('source1_x', ParamTypes.NUMBER, 0.3,
+                    "X-coordinate of the first wave source (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('source1_y', ParamTypes.NUMBER, 0.3,
+                    "Y-coordinate of the first wave source (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('source2_x', ParamTypes.NUMBER, -0.3,
+                    "X-coordinate of the second wave source (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('source2_y', ParamTypes.NUMBER, -0.3,
+                    "Y-coordinate of the second wave source (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('frequency', ParamTypes.NUMBER, 10,
+                    "Wave frequency parameter.",
+                    { min: 1, max: 30, step: 0.5 })
+            ],
+            (args, params) => {
+                // Calculate distances from wave sources
+                const dist1 = Math.sqrt(
+                    Math.pow(args.dx - params.source1_x, 2) +
+                    Math.pow(args.dy - params.source1_y, 2)
+                );
+                const dist2 = Math.sqrt(
+                    Math.pow(args.dx - params.source2_x, 2) +
+                    Math.pow(args.dy - params.source2_y, 2)
+                );
+
+                // Calculate wave phase based on distances
+                const phase = Math.sin(dist1 * params.frequency) + Math.sin(dist2 * params.frequency);
+                return args.radial_angle + phase;
+            }
+        );
+
+        registerShader(
+            "turbulence",
+            "Simulates turbulent fluid-like flows with swirling patterns.",
+            [
+                p('scale', ParamTypes.NUMBER, 0.01,
+                    "Scale of the turbulence pattern.",
+                    { min: 0.001, max: 0.1, step: 0.001 }),
+                p('strength', ParamTypes.NUMBER, 2.0,
+                    "Strength of the turbulence effect.",
+                    { min: 0.1, max: 5, step: 0.1 })
+            ],
+            (args, params) => {
+                // Create pseudo-turbulence using sine functions at different scales
+                const noise1 = Math.sin(args.dx * params.scale * 1.7) * Math.cos(args.dy * params.scale * 2.3);
+                const noise2 = Math.sin(args.dx * params.scale * 3.7 + 0.5) * Math.cos(args.dy * params.scale * 1.9 + 0.4);
+                const noise3 = Math.sin(args.dx * params.scale * 5.1 + 1.1) * Math.cos(args.dy * params.scale * 4.3 + 1.3);
+
+                const turbulence = (noise1 + noise2 * 0.5 + noise3 * 0.25) * params.strength;
+                return args.radial_angle + turbulence;
+            }
+        );
+
+        registerShader(
+            "electric_field",
+            "Simulates an electric field with multiple point charges.",
+            [
+                p('charge1_x', ParamTypes.NUMBER, 0.3,
+                    "X-coordinate of the first charge (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('charge1_y', ParamTypes.NUMBER, 0.3,
+                    "Y-coordinate of the first charge (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('charge1_value', ParamTypes.NUMBER, 1,
+                    "Value of the first charge (positive or negative).",
+                    { min: -3, max: 3, step: 0.1 }),
+                p('charge2_x', ParamTypes.NUMBER, -0.3,
+                    "X-coordinate of the second charge (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('charge2_y', ParamTypes.NUMBER, -0.3,
+                    "Y-coordinate of the second charge (-1 to 1).",
+                    { min: -1, max: 1, step: 0.05 }),
+                p('charge2_value', ParamTypes.NUMBER, -1,
+                    "Value of the second charge (positive or negative).",
+                    { min: -3, max: 3, step: 0.1 })
+            ],
+            (args, params) => {
+                // Convert normalized coordinates to actual positions
+                const c1x = params.charge1_x;
+                const c1y = params.charge1_y;
+                const c2x = params.charge2_x;
+                const c2y = params.charge2_y;
+
+                // Calculate vector components from each charge
+                const r1sq = Math.pow(args.dx - c1x, 2) + Math.pow(args.dy - c1y, 2) + 0.01;
+                const r2sq = Math.pow(args.dx - c2x, 2) + Math.pow(args.dy - c2y, 2) + 0.01;
+
+                // Calculate field components
+                const Ex = params.charge1_value * (args.dx - c1x) / (r1sq * Math.sqrt(r1sq)) +
+                    params.charge2_value * (args.dx - c2x) / (r2sq * Math.sqrt(r2sq));
+                const Ey = params.charge1_value * (args.dy - c1y) / (r1sq * Math.sqrt(r1sq)) +
+                    params.charge2_value * (args.dy - c2y) / (r2sq * Math.sqrt(r2sq));
+
+                // Return the angle of the field vector
+                return Math.atan2(Ey, Ex);
+            }
+        );
+
+        registerShader(
+            "hyperbolic_field",
+            "Generates a hyperbolic field pattern with controllable curvature.",
+            [
+                p('curvature', ParamTypes.NUMBER, 0.5,
+                    "Controls the curvature of the hyperbolic field.",
+                    { min: 0.1, max: 2, step: 0.1 })
+            ],
+            (args, params) => {
+                const x_ratio = args.dx;
+                const y_ratio = args.dy;
+                return Math.atan2(
+                    2 * params.curvature * x_ratio * y_ratio,
+                    params.curvature * (x_ratio * x_ratio - y_ratio * y_ratio)
+                );
+            }
+        );
+
         // Compute the centroid of the points.
         function computeCentroid(points, centralObject = null) {
             if (centralObject) {
