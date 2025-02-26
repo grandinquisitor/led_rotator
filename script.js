@@ -788,7 +788,8 @@ registerShader(
         const pixelValue = ((macroX * 7919) ^ (macroY * 104729)) % params.angle_count;
 
         // Map to evenly distributed angles
-        return (pixelValue * (2 * Math.PI / params.angle_count));
+        // use 180° range
+        return (pixelValue * (Math.PI / params.angle_count));
     }
 );
 
