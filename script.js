@@ -207,7 +207,7 @@ registerShader(
     [
         p('multiplier', ParamTypes.NUMBER, 0.1,
             "Multiplier that determines how much the angle increases per unit radius, forming the spiral.",
-            { min: 0, max: null, step: 0.01 })
+            { min: 0.1, max: null, step: 0.1 })
     ],
     (args, params) => args.radial_angle + args.radius * params.multiplier);
 
@@ -335,7 +335,7 @@ registerShader(
     [
         p('strength', ParamTypes.NUMBER, 0.2,
             "Rotation strength that scales the effect of the radius on the angle, forming the pinwheel.",
-            { min: 0, max: null, step: 0.01 }),
+            { min: 0, max: null, step: 0.1 }),
         p('offset', ParamTypes.ANGLE, Math.PI / 4,
             "Angular offset that shifts the base orientation of the pinwheel pattern.",
             { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
@@ -481,7 +481,7 @@ registerShader(
     [
         p('growth_rate', ParamTypes.NUMBER, 0.2,
             "Controls how tightly the spiral winds (smaller values create tighter spirals).",
-            { min: 0.05, max: 1, step: 0.05 })
+            { min: 0.1, max: 10, step: 0.1 })
     ],
     (args, params) =>
         args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
