@@ -1,77 +1,144 @@
+/* Modern UI Styling */
+:root {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --accent-color: #2ecc71;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --border-color: #e0e0e0;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --radius: 8px;
+}
+
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    margin: 0;
-    font-family: 'Roboto', sans-serif;
-    background-color: #f7f9fc;
-    color: #333;
-}
-
-#controls {
-    background-color: #fff;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
     padding: 20px;
-    border-bottom: 2px solid #e0e0e0;
-    max-width: 1000px;
+}
+
+.app-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    max-width: 1400px;
     margin: 0 auto;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-#controls>div {
-    margin: 10px 0;
+.sidebar {
+    background-color: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    height: fit-content;
 }
 
-label {
-    display: inline-block;
-    width: 180px;
+.header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: var(--primary-dark);
     font-weight: 500;
 }
 
-.param-description {
-    font-size: 0.9em;
-    color: #777;
-    margin-top: 5px;
+.control-item {
+    margin-bottom: 12px;
 }
 
-input[type="number"],
-input[type="text"],
-select {
-    padding: 8px 10px;
-    border: 1px solid #ccc;
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+select,
+input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 1em;
+    background-color: white;
+    font-size: 0.9rem;
+}
+
+select {
+    cursor: pointer;
 }
 
 input[type="range"] {
-    width: 200px;
+    padding: 0;
+}
+
+.param-description {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 3px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
 }
 
 button {
-    padding: 10px 15px;
-    background-color: #4CAF50;
-    color: #fff;
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
     border: none;
     border-radius: 4px;
-    font-size: 1em;
     cursor: pointer;
-    transition: background-color 0.3s;
-    margin-right: 10px;
+    font-weight: 500;
+    transition: background-color 0.2s;
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: var(--primary-dark);
+}
+
+.canvas-container {
+    background-color: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 canvas {
-    display: block;
-    margin: 20px auto;
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    max-width: 100%;
+    height: auto;
 }
 
-/* Modal Styles */
+/* Modal styling */
 .modal {
     display: none;
     position: fixed;
@@ -86,55 +153,66 @@ canvas {
 }
 
 .modal-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     max-width: 600px;
-    width: 90%;
-    max-height: 80%;
-    overflow-y: auto;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    animation: fadeIn 0.3s ease-out;
+    width: 100%;
+    max-height: 80vh;
+    overflow: auto;
 }
 
-.modal-content h3 {
-    margin-top: 0;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    font-size: 1.2rem;
+    color: var(--primary-dark);
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
 }
 
 .modal-content textarea {
     width: 100%;
-    height: 200px;
+    height: 250px;
     margin: 10px 0;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-family: 'Roboto', sans-serif;
-    font-size: 1em;
-}
-
-.modal-content button {
-    background-color: #2196F3;
-    margin: 5px;
-}
-
-.modal-content button:hover {
-    background-color: #1976D2;
+    font-family: monospace;
+    resize: vertical;
 }
 
 #import-error {
-    color: #e53935;
+    color: #e74c3c;
     margin: 10px 0;
+    font-size: 0.9rem;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
 
-    to {
-        opacity: 1;
-        transform: scale(1);
+@media (max-width: 768px) {
+    .app-container {
+        grid-template-columns: 1fr;
     }
 }
 

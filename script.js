@@ -993,51 +993,88 @@ function populateShaderSelect() {
 function populateShaderParams() {
     const container = document.getElementById('shader-params-container');
     container.innerHTML = '';
-    const shader = shaderRegistry[document.getElementById('shader-select').value];
+    const shaderName = document.getElementById('shader-select').value;
+    const shader = shaderRegistry[shaderName];
+
+    // Add shader description if available
+    if (shader?.desc) {
+        const descDiv = document.createElement('div');
+        descDiv.classList.add('param-description');
+        descDiv.style.marginBottom = '15px';
+        descDiv.textContent = shader.desc;
+        container.appendChild(descDiv);
+    }
 
     if (shader?.params) {
         shader.params.forEach(param => {
             const div = document.createElement('div');
-            div.classList.add('param-container');
+            div.classList.add('control-item');
 
-            const label = document.createElement('label');
-            label.textContent = `${param.name}: `;
+            const labelElem = document.createElement('label');
+            labelElem.setAttribute('for', `param-${param.name}`);
+            labelElem.textContent = param.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
             const input = document.createElement('input');
+            input.value = param.defaultValue;
             input.id = `param-${param.name}`;
 
             if (param.paramType === ParamTypes.BOOLEAN) {
+                // Create a checkbox for boolean parameters
+                input = document.createElement('input');
                 input.type = 'checkbox';
-                input.checked = param.defaultValue;
+                input.id = `param-${param.name}`;
+                input.checked = param.defaultValue === true;
+                input.style.width = 'auto';
+                input.style.marginLeft = '10px';
+
+                // Create a container for checkbox and label
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.style.display = 'flex';
+                checkboxContainer.style.alignItems = 'center';
+                checkboxContainer.appendChild(labelElem);
+                checkboxContainer.appendChild(input);
+
+                div.innerHTML = '';
+                div.appendChild(checkboxContainer);
+            } else if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
+                input.type = 'range';
+
+                // Add value display for sliders
+                const valueDisplay = document.createElement('span');
+                valueDisplay.classList.add('value-display');
+                valueDisplay.textContent = param.defaultValue;
+                valueDisplay.style.marginLeft = '8px';
+                valueDisplay.style.fontSize = '0.9rem';
+
+                input.addEventListener('input', () => {
+                    valueDisplay.textContent = parseFloat(input.value).toFixed(2);
+                });
+
+                labelElem.appendChild(valueDisplay);
             } else {
-                input.value = param.defaultValue;
-
-                if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
-                    input.type = 'range';
-                } else {
-                    input.type = 'number';
-                }
-                if (param.min !== null) input.min = param.min;
-                if (param.max !== null) input.max = param.max;
-
-                if (param.step !== null) {
-                    input.step = param.step;
-                } else if (param.paramType === ParamTypes.INTEGER) {
-                    input.step = 1;
-                } else if (param.paramType === ParamTypes.PERCENT) {
-                    input.step = .05;
-                }
-
-                if (param.paramType === ParamTypes.PERCENT) {
-                    if (param.min === null) input.min = 0;
-                    if (param.max === null) input.max = 1;
-                } else if (param.paramType === ParamTypes.ANGLE) {
-                    if (param.min === null) input.min = 0;
-                    if (param.max === null) input.max = 2 * Math.PI;
-                }
+                input.type = 'number';
             }
 
-            div.appendChild(label);
+            if (param.min !== null) input.min = param.min;
+            if (param.max !== null) input.max = param.max;
+
+            if (param.step !== null) {
+                input.step = param.step;
+            } else if (param.paramType === ParamTypes.INTEGER) {
+                input.step = 1;
+            } else if (param.paramType === ParamTypes.PERCENT) {
+                input.step = 0.05;
+            }
+
+            if (param.paramType === ParamTypes.PERCENT) {
+                if (param.min === null) input.min = 0;
+                if (param.max === null) input.max = 1;
+            } else if (param.paramType === ParamTypes.ANGLE) {
+                if (param.min === null) input.min = 0;
+                if (param.max === null) input.max = 2 * Math.PI;
+            }
+
+            div.appendChild(labelElem);
             div.appendChild(input);
 
             if (param.description) {
@@ -1144,15 +1181,55 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('export-modal').style.display = 'none';
     });
 
+    // Add clipboard functionality for export
+    document.getElementById('export-copy').addEventListener('click', () => {
+        const exportText = document.getElementById('export-csv-text');
+        exportText.select();
+        document.execCommand('copy');
+
+        // Visual feedback
+        const copyBtn = document.getElementById('export-copy');
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        copyBtn.style.backgroundColor = '#2ecc71';
+
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.style.backgroundColor = '';
+        }, 1500);
+    });
+
+    // Add download functionality
+    document.getElementById('export-download').addEventListener('click', () => {
+        const exportText = document.getElementById('export-csv-text').value;
+        const blob = new Blob([exportText], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'led_angles.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
             e.target.style.display = 'none';
         }
     });
 
-    // Initial setup
+    // Set up shader select change handler
     document.getElementById('shader-select').addEventListener('change', populateShaderParams);
-    document.getElementById('controls').addEventListener('input', updateVisualization);
+
+    // Listen for input and change events on the sidebar that contains all controls
+    // This uses event delegation to catch events from all child controls
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.addEventListener('input', updateVisualization);
+    sidebar.addEventListener('change', updateVisualization);
+
+    // Initial population and visualization
     populateShaderSelect();
     updateVisualization();
 });
