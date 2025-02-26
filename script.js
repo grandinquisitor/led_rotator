@@ -982,8 +982,14 @@ function populateShaderSelect() {
     // Sort the shader names alphabetically
     shaderNames.sort();
 
+    function snakeToReadable(snakeCase) {
+        return snakeCase
+          .replace(/_/g, ' ') // Replace underscores with spaces
+          .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
+      }
+
     select.innerHTML = shaderNames
-        .map(name => `<option value="${name}">${name}</option>`)
+        .map(name => `<option value="${name}">${snakeToReadable(name)}</option>`)
         .join('');
 
     select.dispatchEvent(new Event('change'));
