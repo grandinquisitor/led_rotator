@@ -604,13 +604,13 @@ registerShader(
     [
         p('curvature', ParamTypes.NUMBER, 0.5,
             "Controls the curvature of the hyperbolic field.",
-            { min: 0.1, max: 2, step: 0.1 })
+            { min: 0.1, max: 3, step: 0.1 })
     ],
     (args, params) => {
         const x_ratio = args.dx;
         const y_ratio = args.dy;
         return Math.atan2(
-            2 * params.curvature * x_ratio * y_ratio,
+            2 * x_ratio * y_ratio,
             params.curvature * (x_ratio * x_ratio - y_ratio * y_ratio)
         );
     }
