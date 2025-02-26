@@ -869,7 +869,6 @@ function computeCentroid(points, centralObject = null) {
     return { cx: sumX / points.length, cy: sumY / points.length };
 }
 
-// Modified calculateAngles function with snake_case args
 function calculateAngles(points, rotationFormula, options = {}) {
     const {
         centralObject = null,
