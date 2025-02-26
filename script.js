@@ -304,21 +304,23 @@ registerShader(
         return phase + params.phase_offset;
     });
 
-
 // Centroid Rotation: Returns the unmodified radial angle.
-registerShader("radial", "Returns the original radial angle, effectively centering the rotation.",
+registerShader("radial", "Returns the original radial angle as the led angle, effectively centering the rotation.",
     [],
     (args) => args.radial_angle);
 
-// Centroid Rotation: Returns the unmodified radial angle.
-registerShader("radial_offset", "Returns the original radial angle, effectively centering the rotation.",
-    [p('offset', ParamTypes.ANGLE, 0, "Angular offset applied to the radial angle.",
-        { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }
-    )],
-    (args, params) => args.radial_angle + params.offset);
+registerShader("polar_simple", "Set the angle according to simple polar effects.",
+    [
+        p('angle_effect', ParamTypes.ANGLE, 0, "Angular offset applied to the radial angle.",
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
+        p('distance_effect', ParamTypes.PERCENT, 0, "Distance effect."),
+        p('invert_distance', ParamTypes.BOOLEAN, 0, "Invert distance.")
+    ],
+    (args, params) =>
+        args.radial_angle + params.angle_effect + (2 * Math.PI * (params.invert_distance ? 1 - args.radius : args.radius) * params.distance_effect)
+);
 
-// Centroid Rotation: Returns the unmodified radial angle.
-registerShader("radial_circle", "Returns the original radial angle, effectively centering the rotation.",
+registerShader("radial_circle", "Returns the original radial angle rotated by 180, effectively centering the rotation.",
     [],
     (args) => args.radial_angle + Math.PI / 2);
 
