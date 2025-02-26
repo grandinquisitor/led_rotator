@@ -956,6 +956,7 @@ function visualize(pointsWithAngles, options = {}) {
 
         ctx.restore();
 
+        /*
         // Draw the label near the LED.
         ctx.save();
         ctx.translate(px, py);
@@ -965,8 +966,9 @@ function visualize(pointsWithAngles, options = {}) {
         ctx.font = "10px Arial";
         ctx.textAlign = 'center';
         // don't show label
-        // ctx.fillText(label, 0, 0);
+        ctx.fillText(label, 0, 0);
         ctx.restore();
+        */
     });
 
     ctx.restore();
