@@ -113,6 +113,7 @@ const ParamTypes = Object.freeze({
     INTEGER: new ParamType('INTEGER', 0, 'number', v => Number.isInteger(v)),
     PERCENT: new ParamType('PERCENT', 0, 'number', v => v >= 0 && v <= 1),
     ANGLE: new ParamType('ANGLE', 0, 'number', v => v >= 0 && v <= 2 * Math.PI),
+    BOOLEAN: new ParamType('BOOLEAN', 0, 'boolean', value => typeof value === 'boolean'),
     SHADER: new ParamType('SHADER', 'null', 'string', v => typeof v === 'string')
 });
 
@@ -759,31 +760,37 @@ function populateShaderParams() {
             label.textContent = `${param.name}: `;
 
             const input = document.createElement('input');
-            input.value = param.defaultValue;
             input.id = `param-${param.name}`;
 
-            if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
-                input.type = 'range';
+            if (param.paramType === ParamTypes.BOOLEAN) {
+                input.type = 'checkbox';
+                input.checked = param.defaultValue;
             } else {
-                input.type = 'number';
-            }
-            if (param.min !== null) input.min = param.min;
-            if (param.max !== null) input.max = param.max;
+                input.value = param.defaultValue;
 
-            if (param.step !== null) {
-                input.step = param.step;
-            } else if (param.paramType === ParamTypes.INTEGER) {
-                input.step = 1;
-            } else if (param.paramType === ParamTypes.PERCENT) {
-                input.step = .05;
-            }
+                if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
+                    input.type = 'range';
+                } else {
+                    input.type = 'number';
+                }
+                if (param.min !== null) input.min = param.min;
+                if (param.max !== null) input.max = param.max;
 
-            if (param.paramType === ParamTypes.PERCENT) {
-                if (param.min === null) input.min = 0;
-                if (param.max === null) input.max = 1;
-            } else if (param.paramType === ParamTypes.ANGLE) {
-                if (param.min === null) input.min = 0;
-                if (param.max === null) input.max = 2 * Math.PI;
+                if (param.step !== null) {
+                    input.step = param.step;
+                } else if (param.paramType === ParamTypes.INTEGER) {
+                    input.step = 1;
+                } else if (param.paramType === ParamTypes.PERCENT) {
+                    input.step = .05;
+                }
+
+                if (param.paramType === ParamTypes.PERCENT) {
+                    if (param.min === null) input.min = 0;
+                    if (param.max === null) input.max = 1;
+                } else if (param.paramType === ParamTypes.ANGLE) {
+                    if (param.min === null) input.min = 0;
+                    if (param.max === null) input.max = 2 * Math.PI;
+                }
             }
 
             div.appendChild(label);
@@ -810,7 +817,12 @@ function updateVisualization() {
     if (shader.params) {
         shader.params.forEach(param => {
             const input = document.getElementById(`param-${param.name}`);
-            shaderParams[param.name] = parseFloat(input?.value) || param.defaultValue;
+
+            if (param.paramType === ParamTypes.BOOLEAN) {
+                shaderParams[param.name] = input?.checked || param.defaultValue;
+            } else {
+                shaderParams[param.name] = parseFloat(input?.value) || param.defaultValue;
+            }
         });
     }
 
