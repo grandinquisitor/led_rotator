@@ -75,6 +75,10 @@ label {
     font-weight: 500;
 }
 
+label.checkbox-label {
+    display: inline;
+}
+
 select,
 input {
     width: 100%;

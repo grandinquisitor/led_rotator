@@ -1025,22 +1025,14 @@ function populateShaderParams() {
 
             if (param.paramType === ParamTypes.BOOLEAN) {
                 // Create a checkbox for boolean parameters
-                input = document.createElement('input');
                 input.type = 'checkbox';
                 input.id = `param-${param.name}`;
                 input.checked = param.defaultValue === true;
                 input.style.width = 'auto';
                 input.style.marginLeft = '10px';
 
-                // Create a container for checkbox and label
-                const checkboxContainer = document.createElement('div');
-                checkboxContainer.style.display = 'flex';
-                checkboxContainer.style.alignItems = 'center';
-                checkboxContainer.appendChild(labelElem);
-                checkboxContainer.appendChild(input);
+                labelElem.classList.add('checkbox-label');
 
-                div.innerHTML = '';
-                div.appendChild(checkboxContainer);
             } else if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
                 input.type = 'range';
 
