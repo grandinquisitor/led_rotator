@@ -1110,7 +1110,9 @@ function updateVisualization() {
             if (param.paramType === ParamTypes.BOOLEAN) {
                 shaderParams[param.name] = input?.checked || param.defaultValue;
             } else {
-                shaderParams[param.name] = parseFloat(input?.value) || param.defaultValue;
+                shaderParams[param.name] = (input?.value !== undefined && input?.value !== '')
+                    ? parseFloat(input.value)
+                    : param.defaultValue;
             }
         });
     }
