@@ -346,6 +346,163 @@ registerShader(
         return args.radial_angle + (pulse % 2) * params.phase_shift;
     });
 
+registerShader(
+    "threshold_angles",
+    "Assigns different angles to LEDs based on their distance from the center, with an optional crossfade.",
+    [
+        p('inner_angle', ParamTypes.ANGLE, 0,
+            "Angle for LEDs inside the threshold radius.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('outer_angle', ParamTypes.ANGLE, Math.PI / 2,
+            "Angle for LEDs outside the threshold radius.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('threshold', ParamTypes.PERCENT, 0.5,
+            "Normalized radius value (0.0-1.0) that determines the boundary between inner and outer regions.",
+            { min: 0, max: 1, step: 0.05 }),
+        p('fade_width', ParamTypes.PERCENT, 0.1,
+            "Width of the transition zone for crossfading between the two angles (0 means a hard edge).",
+            { min: 0, max: 1, step: 0.01 })
+    ],
+    (args, params) => {
+        // If fade_width is 0 or very small, use a hard threshold
+        if (params.fade_width < 0.001) {
+            return args.radius <= params.threshold ? params.inner_angle : params.outer_angle;
+        }
+
+        // Calculate the crossfade boundaries
+        const lowerBound = Math.max(0, params.threshold - params.fade_width / 2);
+        const upperBound = Math.min(1, params.threshold + params.fade_width / 2);
+
+        if (args.radius <= lowerBound) {
+            // Inside the inner region
+            return params.inner_angle;
+        } else if (args.radius >= upperBound) {
+            // Outside the outer region
+            return params.outer_angle;
+        } else {
+            // In the transition zone, interpolate between the two angles
+            const t = (args.radius - lowerBound) / (upperBound - lowerBound);
+
+            // Linear interpolation between the two angles
+            // We need to handle the case where the angles cross the 0/2π boundary
+            const diff = params.outer_angle - params.inner_angle;
+            const shortestDiff = Math.abs(diff) <= Math.PI ? diff : diff - Math.sign(diff) * 2 * Math.PI;
+
+            return params.inner_angle + t * shortestDiff;
+        }
+    }
+);
+
+// Ripple Shader: Creates concentric rings that alternate between two angles
+registerShader(
+    "ripple",
+    "Creates concentric ripples that alternate between two angles as radius increases, with controllable frequency.",
+    [
+        p('peak_angle', ParamTypes.ANGLE, 0,
+            "Angle assigned to LEDs at the peak of each ripple wave.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('trough_angle', ParamTypes.ANGLE, Math.PI / 2,
+            "Angle assigned to LEDs at the trough of each ripple wave.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('frequency', ParamTypes.NUMBER, 5,
+            "Number of complete ripples that occur between center and maximum radius.",
+            { min: 0.5, max: 20, step: 0.5 }),
+        p('phase_shift', ParamTypes.NUMBER, 0,
+            "Shifts the ripple pattern radially (values from 0 to 1).",
+            { min: 0, max: 1, step: 0.05 }),
+        p('sharpness', ParamTypes.NUMBER, 1,
+            "Controls how sharp the transition between angles is (higher = more abrupt).",
+            { min: 0.1, max: 10, step: 0.1 })
+    ],
+    (args, params) => {
+        // Calculate the ripple wave using sine function
+        // The sine wave output ranges from -1 to 1
+        const wave = Math.sin(
+            2 * Math.PI * params.frequency * args.radius +
+            2 * Math.PI * params.phase_shift
+        );
+
+        // Apply sharpness by raising sine to an odd power to maintain -1 to 1 range
+        // but make transitions sharper between peaks and troughs
+        let sharpWave = wave;
+        if (params.sharpness > 1) {
+            // Using Math.pow with odd exponent preserves the sign
+            sharpWave = Math.pow(Math.abs(wave), 1 / params.sharpness) * Math.sign(wave);
+        }
+
+        // Map the wave value (-1 to 1) to a blend factor (0 to 1)
+        const blendFactor = (sharpWave + 1) / 2;
+
+        // Linear interpolation between trough_angle and peak_angle
+        // Handle the case where angles cross the 0/2π boundary
+        const diff = params.peak_angle - params.trough_angle;
+        const shortestDiff = Math.abs(diff) <= Math.PI ? diff : diff - Math.sign(diff) * 2 * Math.PI;
+
+        return params.trough_angle + blendFactor * shortestDiff;
+    }
+);
+
+// Lateral Wave Shader: Creates parallel bands that alternate between two angles
+registerShader(
+    "lateral_wave",
+    "Creates parallel bands of alternating angles along a specified direction.",
+    [
+        p('peak_angle', ParamTypes.ANGLE, 0,
+            "Angle assigned to LEDs at the peak of each wave.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('trough_angle', ParamTypes.ANGLE, Math.PI / 2,
+            "Angle assigned to LEDs at the trough of each wave.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('wave_direction', ParamTypes.ANGLE, 0,
+            "Direction along which the waves propagate.",
+            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+        p('frequency', ParamTypes.NUMBER, 5,
+            "Number of complete waves that occur across the unit space.",
+            { min: 0.5, max: 20, step: 0.5 }),
+        p('phase_shift', ParamTypes.NUMBER, 0,
+            "Shifts the wave pattern (values from 0 to 1).",
+            { min: 0, max: 1, step: 0.05 }),
+        p('sharpness', ParamTypes.NUMBER, 1,
+            "Controls how sharp the transition between angles is (higher = more abrupt).",
+            { min: 0.1, max: 10, step: 0.1 })
+    ],
+    (args, params) => {
+        // Calculate the projection of the point onto the wave direction vector
+        // Wave direction is the direction along which the waves propagate
+        const directionX = Math.cos(params.wave_direction);
+        const directionY = Math.sin(params.wave_direction);
+
+        // Project the point's position onto the direction vector
+        // This gives us the distance along the wave direction
+        const projectedDistance = args.dx * directionX + args.dy * directionY;
+
+        // Calculate the wave using sine function
+        // The sine wave output ranges from -1 to 1
+        const wave = Math.sin(
+            2 * Math.PI * params.frequency * projectedDistance +
+            2 * Math.PI * params.phase_shift
+        );
+
+        // Apply sharpness by raising sine to an odd power to maintain -1 to 1 range
+        // but make transitions sharper between peaks and troughs
+        let sharpWave = wave;
+        if (params.sharpness > 1) {
+            // Using Math.pow with odd exponent preserves the sign
+            sharpWave = Math.pow(Math.abs(wave), 1 / params.sharpness) * Math.sign(wave);
+        }
+
+        // Map the wave value (-1 to 1) to a blend factor (0 to 1)
+        const blendFactor = (sharpWave + 1) / 2;
+
+        // Linear interpolation between trough_angle and peak_angle
+        // Handle the case where angles cross the 0/2π boundary
+        const diff = params.peak_angle - params.trough_angle;
+        const shortestDiff = Math.abs(diff) <= Math.PI ? diff : diff - Math.sign(diff) * 2 * Math.PI;
+
+        return params.trough_angle + blendFactor * shortestDiff;
+    }
+);
+
 // Fibonacci Rotation: Applies the golden angle to create a Fibonacci spiral.
 registerShader(
     "fibonacci_rotation",
