@@ -1281,10 +1281,12 @@ function populateShaderParams() {
 
                 function formatValue(value, param) {
                     if (param.paramType === ParamTypes.ANGLE) {
+                        // round to nearest 0.5 degrees
                         return Math.round(value * (180 / Math.PI) * 2) / 2 + '°';
                     } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
                         return parseInt(value);
                     } else if (param.paramType === ParamTypes.PERCENT) {
+                        // round to nearest 0.5%
                         return Math.round(parseFloat(value) * 200) / 2 + '%';
                     } else {
                         return parseFloat(value).toFixed(2);
