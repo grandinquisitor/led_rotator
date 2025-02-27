@@ -962,10 +962,10 @@ registerShader(
             { min: 1, max: 10, step: 1 }),
         p('angle1', ParamTypes.ANGLE, 0,
             "Angle for the first grid cells.",
-            { min: 0, max: 2 * Math.PI, step: Math.PI / 4 }),
+            { min: 0, max: Math.PI, step: Math.PI / 8 }),
         p('angle2', ParamTypes.ANGLE, Math.PI / 2,
             "Angle for the second grid cells.",
-            { min: 0, max: 2 * Math.PI, step: Math.PI / 4 })
+            { min: 0, max: Math.PI, step: Math.PI / 8 })
     ],
     (args, params) => {
         // Create a grid based on integer coordinates
