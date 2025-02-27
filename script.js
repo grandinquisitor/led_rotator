@@ -1284,6 +1284,8 @@ function populateShaderParams() {
                         return Math.round(value * (180 / Math.PI)) + '°';
                     } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
                         return parseInt(value);
+                    } else if (param.paramType === ParamTypes.PERCENT) {
+                        return parseFloat(value) * 100 + '%';
                     } else {
                         return parseFloat(value).toFixed(2);
                     }
