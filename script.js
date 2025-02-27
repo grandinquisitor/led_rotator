@@ -986,7 +986,7 @@ registerShader(
             { min: 2, max: 16, step: 1 }),
         p('offset', ParamTypes.ANGLE, 0,
             "Angular offset for the sectors.",
-            { min: 0, max: 2 * Math.PI, step: Math.PI / 8 })
+            { min: 0, max: Math.PI, step: Math.PI / 8 })
     ],
     (args, params) => {
         // Quantize the angle to a discrete sector
