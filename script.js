@@ -334,7 +334,7 @@ registerShader(
         p('pulse_count', ParamTypes.INTEGER, 6,
             "Number of pulses defining how many alternations occur as radius increases.",
             { min: 1, max: null, step: 1 }),
-        p('scaling', ParamTypes.NUMBER, 5,
+        p('scaling', ParamTypes.NUMBER, 1.0,
             "Scaling factor that determines the radial distance at which pulses occur.",
             { min: 0, max: null, step: 0.1 }),
         p('phase_shift', ParamTypes.ANGLE, Math.PI / 2,
