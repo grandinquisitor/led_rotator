@@ -1130,8 +1130,8 @@ function calculateAngles(points, rotationFormula, options = {}) {
             angleRad = rotationFormula({
                 radial_angle: radialAngle,
                 radius: dist / maxDistance,
-                dx: dx,
-                dy: dy,
+                dx: dx / maxDistance,
+                dy: dy / maxDistance,
                 label: label
             });
         }
