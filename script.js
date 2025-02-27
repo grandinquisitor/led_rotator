@@ -1292,7 +1292,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('import-modal').style.display = 'none';
     });
 
+    document.getElementById('import-close').addEventListener('click', () => {
+        document.getElementById('import-modal').style.display = 'none';
+    });
+
     document.getElementById('export-close').addEventListener('click', () => {
+        document.getElementById('export-modal').style.display = 'none';
+    });
+
+    document.getElementById('export-cancel').addEventListener('click', () => {
         document.getElementById('export-modal').style.display = 'none';
     });
 
