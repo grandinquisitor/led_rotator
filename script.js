@@ -987,8 +987,13 @@ function visualize(pointsWithAngles, options = {}) {
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
+    const bgColor = document.getElementById('background-color').value;
+
     // Clear the canvas.
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // For this demo, we define a fixed LED size (in “mm”) and a scale factor.
     // You can adjust these values or add unit conversion as needed.
@@ -1333,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Add handlers for LED customization options
     document.getElementById('led-package').addEventListener('change', updateVisualization);
     document.getElementById('led-color').addEventListener('change', updateVisualization);
-
+    document.getElementById('background-color').addEventListener('change', updateVisualization);
 
     // Set up shader select change handler
     document.getElementById('shader-select').addEventListener('change', populateShaderParams);
