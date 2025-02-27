@@ -247,3 +247,7 @@ canvas {
 .collapsed .collapsible-content {
     max-height: 0;
 }
+
+.control-item.central {
+    display: none;
+}
