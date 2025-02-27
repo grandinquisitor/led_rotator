@@ -1,3 +1,66 @@
+// #region utils
+
+// Units and LED package definitions
+const Units = {
+    MM: 'mm',
+    MIL: 'mil',
+    INCH: 'inch',
+};
+
+const LED_PACKAGES = {
+    '0201': [0.6, 0.3],
+    '0402': [1.0, 0.5],
+    '0603': [1.6, 0.8],
+    '0805': [2.0, 1.2],
+    '1206': [3.2, 1.6],
+    'cob': [5.0, 5.0],
+};
+
+const LED_PACKAGE_UNITS = Units.MM; // Using the enum
+
+const MM_TO_INCH = 0.0393701;
+const MIL_TO_INCH = 0.001;
+
+function convertUnits(value, fromUnit, toUnit = Units.INCH) { // Using the enum
+    fromUnit = fromUnit.toLowerCase();
+    toUnit = toUnit.toLowerCase();
+
+    if (fromUnit === toUnit) {
+        return value;
+    }
+
+    let inInches;
+
+    if (fromUnit === Units.MM) { // Using the enum
+        inInches = value * MM_TO_INCH;
+    } else if (fromUnit === Units.MIL) { // Using the enum
+        inInches = value * MIL_TO_INCH;
+    } else if (fromUnit === Units.INCH) { // Using the enum
+        inInches = value;
+    } else {
+        throw new Error(`Unsupported 'from' unit: ${fromUnit}`);
+    }
+
+    if (toUnit === Units.MM) { // Using the enum
+        return inInches / MM_TO_INCH;
+    } else if (toUnit === Units.MIL) { // Using the enum
+        return inInches / MIL_TO_INCH;
+    } else if (toUnit === Units.INCH) { // Using the enum
+        return inInches;
+    } else {
+        throw new Error(`Unsupported 'to' unit: ${toUnit}`);
+    }
+}
+
+function getLedSize(package, units = Units.INCH) { // Using the enum
+    const sizeMm = LED_PACKAGES[package.toLowerCase()];
+    if (!sizeMm) {
+        throw new Error(`LED Package ${package} not found.`);
+    }
+    return sizeMm.map((d) => convertUnits(d, LED_PACKAGE_UNITS, units));
+}
+
+
 // #region data
 // Example set of points (label, x, y)
 let points = [
@@ -59,8 +122,9 @@ let points = [
 (() => {
     try {
         const savedCSV = localStorage.getItem('led-points-csv');
+        const savedUnits = localStorage.getItem('led-points-units') || Units.MM;
         if (savedCSV) {
-            points = parseCSV(savedCSV);
+            points = parseCSV(savedCSV, savedUnits);
         } else {
             savePointsToCSV();
         }
@@ -70,7 +134,7 @@ let points = [
     }
 })();
 
-function parseCSV(csvText) {
+function parseCSV(csvText, units = Units.MM) {
     const lines = csvText.split('\n');
     const parsedPoints = [];
     for (const line of lines) {
@@ -82,7 +146,15 @@ function parseCSV(csvText) {
         const x = parseFloat(parts[1]);
         const y = parseFloat(parts[2]);
         if (isNaN(x) || isNaN(y)) throw new Error(`Invalid numbers in line: ${line}`);
-        parsedPoints.push([label, x, y]);
+
+        // Convert coordinates to mm if they're in a different unit
+        if (units !== Units.MM) {
+            const xInMm = convertUnits(x, units, Units.MM);
+            const yInMm = convertUnits(y, units, Units.MM);
+            parsedPoints.push([label, xInMm, yInMm]);
+        } else {
+            parsedPoints.push([label, x, y]);
+        }
     }
     if (parsedPoints.length === 0) throw new Error('CSV contains no valid data');
     return parsedPoints;
@@ -921,8 +993,13 @@ function visualize(pointsWithAngles, options = {}) {
     // For this demo, we define a fixed LED size (in “mm”) and a scale factor.
     // You can adjust these values or add unit conversion as needed.
     const scale = 10;  // 10 pixels per mm
-    const ledWidth = 1.6;   // example: 0603 package width in mm
-    const ledHeight = 0.8;  // example: 0603 package height in mm
+
+    // Get the selected LED package and color
+    const ledPackage = document.getElementById('led-package').value;
+    const ledColor = document.getElementById('led-color').value;
+
+    // Get LED dimensions based on package
+    const [ledWidth, ledHeight] = getLedSize(ledPackage, Units.MM);
 
     // For visualization, we translate the coordinate system:
     ctx.save();
@@ -942,7 +1019,7 @@ function visualize(pointsWithAngles, options = {}) {
         ctx.translate(px, py);
         ctx.rotate(angleRad);
         // Draw a filled rectangle with a stroke.
-        ctx.fillStyle = 'blue';
+        ctx.fillStyle = ledColor;
         ctx.strokeStyle = 'black';
         ctx.fillRect(- (ledWidth * scale) / 2, - (ledHeight * scale) / 2, ledWidth * scale, ledHeight * scale);
         ctx.strokeRect(- (ledWidth * scale) / 2, - (ledHeight * scale) / 2, ledWidth * scale, ledHeight * scale);
@@ -1139,6 +1216,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('import-csv-text').value = points.map(p => p.join(',')).join('\n');
         document.getElementById('import-error').textContent = '';
         document.getElementById('import-modal').style.display = 'flex';
+
+        const savedUnits = localStorage.getItem('led-points-units') || Units.MM;
+        const unitsDropdown = document.getElementById('import-units');
+        if (unitsDropdown) {
+            unitsDropdown.value = savedUnits;
+        }
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
@@ -1171,9 +1254,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('export-modal').style.display = 'flex';
     });
 
+    // 3. Update the import submit handler to use the selected units
     document.getElementById('import-submit').addEventListener('click', () => {
         try {
-            const newPoints = parseCSV(document.getElementById('import-csv-text').value);
+            const units = document.getElementById('import-units').value;
+            const newPoints = parseCSV(document.getElementById('import-csv-text').value, units);
             points = newPoints;
             savePointsToCSV();
             updateVisualization();
@@ -1229,6 +1314,22 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.style.display = 'none';
         }
     });
+
+    const collapsibleHeader = document.querySelector('.collapsible-header');
+    const optionsGroup = document.getElementById('global-options-group');
+
+    // Default to collapsed
+    optionsGroup.classList.add('collapsed');
+
+    // Toggle collapse state when header is clicked
+    collapsibleHeader.addEventListener('click', () => {
+        optionsGroup.classList.toggle('collapsed');
+    });
+
+    // 2. Add handlers for LED customization options
+    document.getElementById('led-package').addEventListener('change', updateVisualization);
+    document.getElementById('led-color').addEventListener('change', updateVisualization);
+
 
     // Set up shader select change handler
     document.getElementById('shader-select').addEventListener('change', populateShaderParams);

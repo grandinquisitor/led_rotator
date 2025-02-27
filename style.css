@@ -220,6 +220,30 @@ canvas {
     }
 }
 
-#global-params {
-    display: none;
+/* Collapsible section styles */
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.collapse-icon {
+    transition: transform 0.3s;
+    font-size: 0.8rem;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.collapsible-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    max-height: 1000px;
+}
+
+.collapsed .collapsible-content {
+    max-height: 0;
 }

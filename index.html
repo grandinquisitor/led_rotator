@@ -25,21 +25,48 @@
                 <div id="shader-params-container"></div>
             </div>
 
-            <div class="control-group" id="global-params">
-                <h3>Global Options</h3>
-                <div class="control-item">
-                    <label for="global-central-object">Central Object ID:</label>
-                    <input type="text" id="global-central-object" placeholder="Leave empty for centroid">
-                </div>
-                <div class="control-item">
-                    <label for="global-center-threshold">Center Threshold:</label>
-                    <input type="number" id="global-center-threshold" step="0.001" value="0.001">
-                    <div class="param-description">Minimum distance from center to apply rotation</div>
-                </div>
-                <div class="control-item">
-                    <label for="global-fixed-center-angle">Fixed Center Angle (degrees):</label>
-                    <input type="number" id="global-fixed-center-angle" step="1" value="0">
-                    <div class="param-description">Angle for LEDs at the center point</div>
+            <div class="control-group" id="global-options-group">
+                <h3 class="collapsible-header">Global Options <span class="collapse-icon">▼</span></h3>
+                <div class="collapsible-content">
+                    <div class="control-item">
+                        <label for="global-central-object">Central Object ID:</label>
+                        <input type="text" id="global-central-object" placeholder="Leave empty for centroid">
+                    </div>
+                    <div class="control-item">
+                        <label for="global-center-threshold">Center Threshold:</label>
+                        <input type="number" id="global-center-threshold" step="0.001" value="0.001">
+                        <div class="param-description">Minimum distance from center to apply rotation</div>
+                    </div>
+                    <div class="control-item">
+                        <label for="global-fixed-center-angle">Fixed Center Angle (degrees):</label>
+                        <input type="number" id="global-fixed-center-angle" step="1" value="0">
+                        <div class="param-description">Angle for LEDs at the center point</div>
+                    </div>
+
+                    <div class="control-item">
+                        <label for="led-package">LED Package:</label>
+                        <select id="led-package">
+                            <option value="0201">0201</option>
+                            <option value="0402">0402</option>
+                            <option value="0603" selected>0603</option>
+                            <option value="0805">0805</option>
+                            <option value="1206">1206</option>
+                            <option value="cob">COB</option>
+                        </select>
+                        <div class="param-description">Size of the LED package</div>
+                    </div>
+
+                    <div class="control-item">
+                        <label for="led-color">LED Color:</label>
+                        <select id="led-color">
+                            <option value="blue" selected>Blue</option>
+                            <option value="red">Red</option>
+                            <option value="green">Green</option>
+                            <option value="orange">Amber</option>
+                            <option value="yellow">Yellow</option>
+                            <option value="white">White</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -62,6 +89,13 @@
                 <button class="close-button" id="import-close">&times;</button>
             </div>
             <p>Paste CSV data in the format: label,x,y (one entry per line)</p>
+            <div class="control-item">
+                <label for="import-units">Input Units:</label>
+                <select id="import-units">
+                    <option value="mm" selected>Millimeters (mm)</option>
+                    <option value="mil">Mils</option>
+                </select>
+            </div>
             <textarea id="import-csv-text" placeholder="D01,17.018,17.018
 D02,17.018,8.382
 ..."></textarea>
