@@ -1098,7 +1098,6 @@ function populateShaderParams() {
             labelElem.textContent = param.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
             const input = document.createElement('input');
-            input.value = param.defaultValue;
             input.id = `param-${param.name}`;
 
             if (param.paramType === ParamTypes.BOOLEAN) {
@@ -1157,6 +1156,11 @@ function populateShaderParams() {
             } else if (param.paramType === ParamTypes.ANGLE) {
                 if (param.min === null) input.min = 0;
                 if (param.max === null) input.max = 2 * Math.PI;
+            }
+
+            // MUST be set AFTER min/max/step, or else the browser may round the value!
+            if (param.paramType !== ParamTypes.BOOLEAN) {
+                input.value = param.defaultValue.toString();
             }
 
             div.appendChild(labelElem);
