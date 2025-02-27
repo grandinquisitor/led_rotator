@@ -16,12 +16,12 @@ const LED_PACKAGES = {
     'cob': [5.0, 5.0],
 };
 
-const LED_PACKAGE_UNITS = Units.MM; // Using the enum
+const LED_PACKAGE_UNITS = Units.MM;
 
 const MM_TO_INCH = 0.0393701;
 const MIL_TO_INCH = 0.001;
 
-function convertUnits(value, fromUnit, toUnit = Units.INCH) { // Using the enum
+function convertUnits(value, fromUnit, toUnit = Units.INCH) {
     fromUnit = fromUnit.toLowerCase();
     toUnit = toUnit.toLowerCase();
 
@@ -31,28 +31,28 @@ function convertUnits(value, fromUnit, toUnit = Units.INCH) { // Using the enum
 
     let inInches;
 
-    if (fromUnit === Units.MM) { // Using the enum
+    if (fromUnit === Units.MM) {
         inInches = value * MM_TO_INCH;
-    } else if (fromUnit === Units.MIL) { // Using the enum
+    } else if (fromUnit === Units.MIL) {
         inInches = value * MIL_TO_INCH;
-    } else if (fromUnit === Units.INCH) { // Using the enum
+    } else if (fromUnit === Units.INCH) {
         inInches = value;
     } else {
         throw new Error(`Unsupported 'from' unit: ${fromUnit}`);
     }
 
-    if (toUnit === Units.MM) { // Using the enum
+    if (toUnit === Units.MM) {
         return inInches / MM_TO_INCH;
-    } else if (toUnit === Units.MIL) { // Using the enum
+    } else if (toUnit === Units.MIL) {
         return inInches / MIL_TO_INCH;
-    } else if (toUnit === Units.INCH) { // Using the enum
+    } else if (toUnit === Units.INCH) {
         return inInches;
     } else {
         throw new Error(`Unsupported 'to' unit: ${toUnit}`);
     }
 }
 
-function getLedSize(package, units = Units.INCH) { // Using the enum
+function getLedSize(package, units = Units.INCH) {
     const sizeMm = LED_PACKAGES[package.toLowerCase()];
     if (!sizeMm) {
         throw new Error(`LED Package ${package} not found.`);
