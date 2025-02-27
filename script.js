@@ -1187,6 +1187,8 @@ function populateShaderParams() {
     }
 }
 
+let g_cachedAngles = [];
+
 function updateVisualization() {
     const shaderName = document.getElementById('shader-select').value;
     const shader = shaderRegistry[shaderName];
@@ -1213,11 +1215,35 @@ function updateVisualization() {
         fixedCenterAngle: parseFloat(document.getElementById('global-fixed-center-angle').value) || 0
     };
 
-    const pointsWithAngles = calculateAngles(points,
+    g_cachedAngles = calculateAngles(points,
         (args) => shader.fn(args, shaderParams),
         globalOptions
     );
-    visualize(pointsWithAngles);
+    visualize(g_cachedAngles);
+}
+
+// Function to generate the export CSV based on cached angles and orientation
+function generateExportCSV() {
+    if (!g_cachedAngles || g_cachedAngles.length === 0) {
+        return "No angles calculated yet";
+    }
+
+    // Get the selected orientation adjustment
+    const orientation = document.getElementById('export-orientation').value;
+
+    // Calculate angle adjustment based on orientation
+    let angleAdjustment = 0;
+    if (orientation === 'up') angleAdjustment = 90;
+    else if (orientation === 'left') angleAdjustment = 180;
+    else if (orientation === 'down') angleAdjustment = 270;
+
+    // Apply adjustment to angles
+    const csv = g_cachedAngles.map(p => {
+        const adjustedAngle = (p.angleDeg - angleAdjustment + 360) % 360;
+        return `${p.label},${adjustedAngle.toFixed(2)}`;
+    }).join('\n');
+
+    return csv;
 }
 
 // #region DOM init
@@ -1238,36 +1264,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
-        const shaderName = document.getElementById('shader-select').value;
-        const shader = shaderRegistry[shaderName];
-        if (!shader) return;
-
-        const shaderParams = {};
-        shader.params?.forEach(param => {
-            const input = document.getElementById(`param-${param.name}`);
-            shaderParams[param.name] = parseFloat(input?.value) || param.defaultValue;
-        });
-
-        const globalOptions = {
-            centralObject: document.getElementById('global-central-object').value || null,
-            centerThreshold: parseFloat(document.getElementById('global-center-threshold').value) || 0.001,
-            fixedCenterAngle: parseFloat(document.getElementById('global-fixed-center-angle').value) || 0
-        };
-
-        const pointsWithAngles = calculateAngles(points,
-            (args) => shader.fn(args, shaderParams),
-            globalOptions
-        );
-
-        const csv = pointsWithAngles.map(p =>
-            `${p.label},${p.angleDeg.toFixed(2)}`
-        ).join('\n');
-
-        document.getElementById('export-csv-text').value = csv;
+        document.getElementById('export-csv-text').value = generateExportCSV();
         document.getElementById('export-modal').style.display = 'flex';
     });
 
-    // 3. Update the import submit handler to use the selected units
+    document.getElementById('export-orientation').addEventListener('change', function () {
+        if (document.getElementById('export-modal').style.display === 'flex') {
+            document.getElementById('export-csv-text').value = generateExportCSV();
+        }
+    });
+
+    // Update the import submit handler to use the selected units
     document.getElementById('import-submit').addEventListener('click', () => {
         try {
             const units = document.getElementById('import-units').value;

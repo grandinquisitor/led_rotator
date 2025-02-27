@@ -131,6 +131,17 @@ D02,17.018,8.382
                 <h3>Export LED Angles</h3>
                 <button class="close-button" id="export-close">&times;</button>
             </div>
+            <div class="control-item export-option">
+                <label for="export-orientation">ECAD LED package orientation</label>
+                <select id="export-orientation">
+                    <option value="left">Cathode faces left</option>
+                    <option value="up">Cathode faces up</option>
+                    <option value="right" selected>Cathode faces right</option>
+                    <option value="down">Cathode faces down</option>
+                </select>
+                <div class="param-description">Adjusts angles based on how cathode direction is defined in your target
+                    software</div>
+            </div>
             <p>The CSV below contains the LED labels and calculated angles:</p>
             <textarea id="export-csv-text" readonly></textarea>
             <div class="modal-footer">
