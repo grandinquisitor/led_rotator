@@ -331,6 +331,9 @@ function savePointsToCSV() {
 }
 
 // #region Shader Definitions
+
+const DEFAULT_SHADER = "radial_rays";
+
 class ParamType {
     constructor(name, defaultValue, jsType, validator) {
         this.name = name;
@@ -1528,6 +1531,11 @@ function populateShaderSelect() {
     select.innerHTML = shaderNames
         .map(name => `<option value="${name}">${snakeToReadable(name)}</option>`)
         .join('');
+
+    // set the default
+    if (DEFAULT_SHADER && shaderRegistry[DEFAULT_SHADER]) {
+        select.value = DEFAULT_SHADER;
+    }
 
     select.dispatchEvent(new Event('change'));
 }
