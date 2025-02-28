@@ -126,7 +126,8 @@ const STORAGE_KEYS = {
     POINTS_UNITS: 'led-points-units',
     LED_PACKAGE: 'led-package',
     LED_COLOR: 'led-color',
-    BACKGROUND_COLOR: 'led-background-color'
+    BACKGROUND_COLOR: 'led-background-color',
+    SHADER_STATE: 'led-shader-state',
 };
 
 // Load initial points from localStorage
@@ -238,6 +239,61 @@ function saveAppearanceSettings() {
     localStorage.setItem(STORAGE_KEYS.LED_PACKAGE, ledPackage);
     localStorage.setItem(STORAGE_KEYS.LED_COLOR, ledColor);
     localStorage.setItem(STORAGE_KEYS.BACKGROUND_COLOR, backgroundColor);
+}
+
+// Function to save the current shader state to localStorage
+function saveShaderStateToLocalStorage() {
+    try {
+        // Create a state object with only the necessary parts
+        const state = {
+            version: 1,
+            shaderName: document.getElementById('shader-select').value,
+            shaderParams: {},
+            globalOptions: {
+                customCenter: g_customCenter || null,
+            }
+        };
+
+        // Serialize shader parameters
+        const shader = shaderRegistry[state.shaderName];
+        if (shader && shader.params) {
+            shader.params.forEach(param => {
+                const inputElem = document.getElementById(`param-${param.name}`);
+                if (param.paramType === ParamTypes.BOOLEAN) {
+                    state.shaderParams[param.name] = inputElem?.checked || false;
+                } else {
+                    state.shaderParams[param.name] = parseFloat(inputElem?.value) || param.defaultValue;
+                }
+            });
+        }
+
+        // Save to localStorage
+        localStorage.setItem(STORAGE_KEYS.SHADER_STATE, JSON.stringify(state));
+    } catch (e) {
+        console.error('Error saving shader state:', e);
+    }
+}
+
+// Function to load shader state from localStorage
+function loadShaderStateFromLocalStorage() {
+    try {
+        // Check if there's a state object in localStorage
+        const stateJson = localStorage.getItem(STORAGE_KEYS.SHADER_STATE);
+        if (!stateJson) return false;
+
+        // Parse and deserialize the state
+        const state = JSON.parse(stateJson);
+        const result = deserializeState(state);
+
+        // Update the centroid UI to reflect any loaded custom centroid
+        updateCentroidStatus();
+
+        return result;
+
+    } catch (e) {
+        console.error('Error loading shader state:', e);
+        return false;
+    }
 }
 
 // Load LED appearance settings from localStorage
@@ -1607,6 +1663,8 @@ function updateVisualization() {
         globalOptions
     );
     visualize(g_cachedAngles, globalOptions);
+
+    saveShaderStateToLocalStorage();
 }
 
 
@@ -2178,7 +2236,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial population and visualization
     populateShaderSelect();
 
-    loadStateFromUrl();
+    if (!loadStateFromUrl()) {
+        loadShaderStateFromLocalStorage();
+    }
 
     updateVisualization();
 });
