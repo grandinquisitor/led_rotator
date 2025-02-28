@@ -1129,7 +1129,7 @@ registerShader(
 
 registerShader(
     "binary_grid",
-    "Creates a simple binary checkerboard pattern ideal for very low resolution.",
+    "Creates a simple binary checkerboard pattern.",
     [
         p('grid_size', ParamTypes.INTEGER, 2,
             "Size of the grid cells.",
@@ -1153,7 +1153,7 @@ registerShader(
 
 registerShader(
     "pixel_sector",
-    "Divides the space into discrete sectors for clear visual differentiation at low resolutions.",
+    "Divides the space into discrete sectors.",
     [
         p('sectors', ParamTypes.INTEGER, 4,
             "Number of angular sectors to divide the space into.",
@@ -1178,7 +1178,7 @@ registerShader(
 
 registerShader(
     "macro_pixel",
-    "Groups pixels into larger 'macro pixels' with consistent angles, ideal for very low resolution.",
+    "Groups pixels into larger 'macro pixels' with consistent angles.",
     [
         p('pixel_size', ParamTypes.INTEGER, 4,
             "Size of each macro pixel (higher = fewer distinct regions).",
