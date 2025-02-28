@@ -622,7 +622,7 @@ registerShader(
         p('trough_angle', ParamTypes.ANGLE, Math.PI / 2,
             "Angle assigned to LEDs at the trough of each wave.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
-        p('wave_direction', ParamTypes.ANGLE, 0,
+        p('wave_direction', ParamTypes.ANGLE, Math.PI / 4,
             "Direction along which the waves propagate.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
         p('frequency', ParamTypes.NUMBER, 1,
@@ -1105,7 +1105,7 @@ registerShader(
             { min: 0, max: Math.PI, step: Math.PI / 4 }),
         p('border_width', ParamTypes.PERCENT, 0.05,
             "Width of the border regions along the axes.",
-            { min: 0.01, max: 0.2, step: 0.01 }),
+            { min: 0.01, max: 0.33, step: 0.01 }),
         p('average_border_angles', ParamTypes.BOOLEAN, false,
             "When enabled, border regions use the average angle of adjacent quadrants.")
     ],
