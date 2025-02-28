@@ -889,8 +889,8 @@ registerShader(
     "Generates a logarithmic spiral pattern with controllable tightness.",
     [
         p('growth_rate', ParamTypes.NUMBER, 0.2,
-            "Controls how tightly the spiral winds (smaller values create tighter spirals).",
-            { min: 0.1, max: 10, step: 0.1 })
+            "Controls how tightly the spiral winds (larger values create tighter spirals).",
+            { min: 0.1, max: 8, step: 0.1 })
     ],
     (args, params) =>
         args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
