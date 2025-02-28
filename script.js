@@ -2084,12 +2084,21 @@ function importStateFromJson(jsonString) {
 
 // Serialize the current application state to a URL query parameter
 function serializeStateToUrl(include_data) {
-    // Convert to JSON and encode for URL use
-    const stateParam = encodeURIComponent(exportStateToJson(include_data));
+    // Convert to JSON
+    const stateJson = exportStateToJson(include_data);
 
     // Generate the full URL with the state parameter
     const url = new URL(window.location.href);
-    url.searchParams.set('restore_state', stateParam);
+
+    if (include_data && typeof JSONCrush !== "undefined") {
+        // Use JSONCrush to compress the data when include_data is true
+        const compressedState = JSONCrush(stateJson);
+        url.searchParams.set('restore_state', compressedState);
+        url.searchParams.set('compress', 'jsoncrush');
+    } else {
+        // Standard URL encoding for smaller states
+        url.searchParams.set('restore_state', encodeURIComponent(stateJson));
+    }
 
     // Remove any existing hash
     url.hash = '';
@@ -2129,25 +2138,38 @@ function copyStateUrl(include_data) {
 function loadStateFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const stateParam = urlParams.get('restore_state');
+    const compressionType = urlParams.get('compress');
 
     if (!stateParam) {
         return false;
     }
 
     try {
-        // Decode and parse the state
-        const urlState = JSON.parse(decodeURIComponent(stateParam));
+        let urlState;
+
+        if (compressionType === 'jsoncrush') {
+            if (typeof JSONCrush === "undefined") {
+                throw new Error('JSONCrush library not available');
+            }
+            // Decompress with JSONCrush if compression is specified
+            const decompressedState = JSONUncrush(stateParam);
+            urlState = JSON.parse(decompressedState);
+        } else {
+            // Standard decoding for uncompressed state
+            urlState = JSON.parse(decodeURIComponent(stateParam));
+        }
 
         // Apply the state
         const success = deserializeState(urlState);
 
         if (success) {
-            showNotification('Configuration loaded successfully!', false, 'success')
+            showNotification('Configuration loaded successfully!', false, 'success');
 
             // Clean up the URL after successful loading
             // This prevents accidental reloads from re-applying the state
             const url = new URL(window.location.href);
             url.searchParams.delete('restore_state');
+            url.searchParams.delete('compress');
             window.history.replaceState({}, document.title, url.toString());
 
             return true;
@@ -2155,7 +2177,7 @@ function loadStateFromUrl() {
             showNotification('Failed to load configuration', true, 'error');
         }
     } catch (error) {
-        showNotification('Error to loading configuration', true, 'error');
+        showNotification('Error loading configuration', true, 'error');
         console.error('Error loading state from URL:', error);
     }
 
