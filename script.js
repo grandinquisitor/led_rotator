@@ -743,7 +743,7 @@ registerShader(
     "vortex",
     "Creates a swirling vortex effect with intensity increasing toward the center.",
     [
-        p('intensity', ParamTypes.NUMBER, 2.0,
+        p('intensity', ParamTypes.NUMBER, 0.2,
             "Controls how strong the vortex effect becomes at the center.",
             { min: 0.1, max: 10, step: 0.1 }),
         p('falloff', ParamTypes.NUMBER, 1.5,
@@ -841,7 +841,7 @@ registerShader(
         p('source2_y', ParamTypes.NUMBER, -0.3,
             "Y-coordinate of the second wave source (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
-        p('frequency', ParamTypes.NUMBER, 10,
+        p('frequency', ParamTypes.NUMBER, 2,
             "Wave frequency parameter.",
             { min: 1, max: 30, step: 0.5 })
     ],
