@@ -1475,15 +1475,38 @@ function initCentroidUI() {
         const y = (e.clientY - rect.top) * scaleY;
 
         // Convert from canvas coordinates to our "mm" coordinates
+        // Reverse the transformation in the visualize function
         // canvas.width/2 center point, scale = 10, offset = 20
         const mmX = ((x - canvas.width / 2) / 10) + 20;
         const mmY = (((canvas.height - y) - canvas.height / 2) / 10) + 20;
 
-        // Update our custom center
-        g_customCenter = { x: mmX, y: mmY };
+        // Calculate a threshold based on the LED package size
+        // Using the diagonal of the LED as the threshold, with a small multiplier
+        const ledPackage = document.getElementById('led-package').value;
+        const [ledWidth, ledHeight] = getLedSize(ledPackage, Units.MM);
+        const clickThreshold = Math.sqrt(ledWidth * ledWidth + ledHeight * ledHeight) * 0.75;
 
-        // Provide user feedback
-        showNotification(`Custom center set to X: ${mmX.toFixed(2)}, Y: ${mmY.toFixed(2)}`, false, 'success');
+        let closestLED = null;
+        let minDistance = Infinity;
+
+        // Find the closest LED to the click point
+        for (const [label, ledX, ledY] of points) {
+            const distance = Math.hypot(ledX - mmX, ledY - mmY);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestLED = [label, ledX, ledY];
+            }
+        }
+
+        if (minDistance < clickThreshold && closestLED) {
+            // If we found a close LED, use its coordinates
+            g_customCenter = { x: closestLED[1], y: closestLED[2] };
+            showNotification(`Centroid override set to LED '${closestLED[0]}'`, false, 'success');
+        } else {
+            // Use the exact coordinates
+            g_customCenter = { x: mmX, y: mmY };
+            showNotification(`Centroid override set to X: ${g_customCenter.x.toFixed(2)}, Y: ${g_customCenter.y.toFixed(2)}`, false, 'success');
+        }
 
         // Update UI to reflect new centroid status
         updateCentroidStatus();
