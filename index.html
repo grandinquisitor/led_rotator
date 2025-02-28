@@ -87,10 +87,16 @@
                 </div>
             </div>
 
+            <div>
             <div class="button-group">
-                <button id="import-btn">Import CSV</button>
-                <button id="export-btn">Export CSV</button>
+                <button id="share-state-btn" class="share-btn">Share Shader</button>
+                <button id="share-state-and-data-btn" class="share-btn">Share Shader & Data</button>
             </div>
+            <div class="button-group">
+                <button id="import-btn" class="data-btn">Import CSV</button>
+                <button id="export-btn" class="data-btn">Export CSV</button>
+            </div>
+        </div>
         </div>
 
         <div class="canvas-container">
@@ -150,6 +156,10 @@ D02,17.018,8.382
                 <button id="export-download">Download</button>
             </div>
         </div>
+    </div>
+
+    <div id="state-notification" class="notification">
+        <span id="notification-message">Message goes here</span>
     </div>
 
 </body>

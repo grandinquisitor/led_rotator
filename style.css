@@ -3,6 +3,7 @@
     --primary-color: #3498db;
     --primary-dark: #2980b9;
     --accent-color: #2ecc71;
+    --accent-color-dark: #1b7942;
     --bg-color: #f8f9fa;
     --card-bg: #ffffff;
     --text-color: #333333;
@@ -122,6 +123,14 @@ button {
 
 button:hover {
     background-color: var(--primary-dark);
+}
+
+button.share-btn {
+    background-color: var(--accent-color);
+}
+
+button.share-btn:hover {
+    background-color: var(--accent-color-dark);
 }
 
 .canvas-container {
@@ -250,4 +259,38 @@ canvas {
 
 .control-item.central {
     display: none;
+}
+
+.notification {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    background-color: var(--accent-color);
+    color: white;
+    box-shadow: var(--shadow);
+    z-index: 2000;
+    font-weight: 500;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+.notification.show {
+    display: block;
+    opacity: 1;
+}
+
+.notification.success {
+    background-color: #2ecc71;
+}
+
+.notification.error {
+    background-color: #e74c3c;
+}
+
+.notification.info {
+    background-color: var(--primary-color);
 }

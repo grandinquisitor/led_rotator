@@ -1383,6 +1383,35 @@ function updateVisualization() {
     visualize(g_cachedAngles);
 }
 
+function showNotification(message, isError = false, type = null) {
+    const notification = document.getElementById('state-notification');
+    const messageElement = document.getElementById('notification-message');
+
+    // Set the message
+    messageElement.textContent = message;
+
+    // Remove existing classes
+    notification.classList.remove('success', 'error', 'info', 'show');
+
+    // Add appropriate class based on type
+    if (type) {
+        notification.classList.add(type);
+    } else {
+        notification.classList.add(isError ? 'error' : 'success');
+    }
+
+    // Show the notification
+    notification.classList.add('show');
+
+    // Hide notification after 3 seconds
+    clearTimeout(notification.timeout);
+    notification.timeout = setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+// #region state serialization
+
 // Function to generate the export CSV based on cached angles and orientation
 function generateExportCSV() {
     if (!g_cachedAngles || g_cachedAngles.length === 0) {
@@ -1407,12 +1436,10 @@ function generateExportCSV() {
     return csv;
 }
 
-// #region state serialization
-
 function serializeState(include_data) {
     const shaderName = document.getElementById('shader-select').value;
     const shader = shaderRegistry[shaderName];
-    
+
     // Create the state object with shader selection
     const state = {
         version: 1,
@@ -1429,7 +1456,7 @@ function serializeState(include_data) {
     if (include_data) {
         state.points = points.map(p => [...p]); // Deep copy to avoid reference issues
     }
-    
+
     // Add all shader parameters
     if (shader && shader.params) {
         shader.params.forEach(param => {
@@ -1441,29 +1468,31 @@ function serializeState(include_data) {
             }
         });
     }
-    
+
     return state;
 }
 
-// Restore application state from a serialized JSON object
 function deserializeState(state) {
     // Validate the state object
     if (!state || typeof state !== 'object' || !state.shaderName) {
         console.error('Invalid state object:', state);
         return false;
     }
-    
+
     try {
+        // First, check if the shader exists
+        if (!shaderRegistry[state.shaderName]) {
+            console.warn(`Shader "${state.shaderName}" not found, using default`);
+            return false;
+        }
+
         // Set shader selection
         const shaderSelect = document.getElementById('shader-select');
-        if (shaderRegistry[state.shaderName]) {
-            shaderSelect.value = state.shaderName;
-            // This will trigger the change event to populate parameters
-            shaderSelect.dispatchEvent(new Event('change'));
-        } else {
-            console.warn(`Shader "${state.shaderName}" not found, using default`);
-        }
-        
+        shaderSelect.value = state.shaderName;
+
+        // IMPORTANT: Trigger the change event to populate shader parameters
+        shaderSelect.dispatchEvent(new Event('change'));
+
         // After parameters are populated, set their values
         if (state.shaderParams) {
             const shader = shaderRegistry[state.shaderName];
@@ -1476,27 +1505,18 @@ function deserializeState(state) {
                                 inputElem.checked = Boolean(state.shaderParams[param.name]);
                             } else {
                                 inputElem.value = state.shaderParams[param.name];
-                                
-                                // Update value display for sliders if it exists
-                                const valueDisplay = inputElem.parentElement.querySelector('.value-display');
-                                if (valueDisplay) {
-                                    let displayValue = state.shaderParams[param.name];
-                                    if (param.paramType === ParamTypes.ANGLE) {
-                                        displayValue = Math.round(displayValue * (180 / Math.PI)) + '°';
-                                    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
-                                        displayValue = parseInt(displayValue);
-                                    } else {
-                                        displayValue = parseFloat(displayValue).toFixed(2);
-                                    }
-                                    valueDisplay.textContent = displayValue;
-                                }
                             }
+
+                            // Trigger appropriate event for the input
+                            // This will update any UI elements like value displays
+                            const eventType = inputElem.type === 'range' ? 'input' : 'change';
+                            inputElem.dispatchEvent(new Event(eventType));
                         }
                     }
                 });
             }
         }
-        
+
         // Set global options
         if (state.globalOptions) {
             if (state.globalOptions.centralObject !== undefined) {
@@ -1509,13 +1529,13 @@ function deserializeState(state) {
                 document.getElementById('global-fixed-center-angle').value = state.globalOptions.fixedCenterAngle;
             }
         }
-        
+
         // Restore points if included
         if (state.points && Array.isArray(state.points) && state.points.length > 0) {
             points = state.points.map(p => [...p]); // Deep copy
             savePointsToCSV();
         }
-        
+
         // Update visualization
         updateVisualization();
         return true;
@@ -1526,8 +1546,8 @@ function deserializeState(state) {
 }
 
 // Convert state to a JSON string for export
-function exportStateToJson() {
-    const state = serializeState();
+function exportStateToJson(include_data) {
+    const state = serializeState(include_data);
     return JSON.stringify(state);
 }
 
@@ -1539,6 +1559,86 @@ function importStateFromJson(jsonString) {
         console.error('Error parsing state JSON:', error);
         return false;
     }
+}
+
+// Serialize the current application state to a URL query parameter
+function serializeStateToUrl(include_data) {
+    // Convert to JSON and encode for URL use
+    const stateParam = encodeURIComponent(exportStateToJson(include_data));
+
+    // Generate the full URL with the state parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('restore_state', stateParam);
+
+    // Remove any existing hash
+    url.hash = '';
+
+    return url.toString();
+}
+
+// Copy the current state URL to clipboard
+function copyStateUrl(include_data) {
+    const url = serializeStateToUrl(include_data);
+
+    // Use the modern clipboard API if available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+            .then(() => showNotification('URL copied to clipboard!'))
+            .catch(err => {
+                console.error('Failed to copy URL: ', err);
+                showNotification('Failed to copy URL', true);
+            });
+    } else {
+        // Fallback for browsers without clipboard API
+        const tempInput = document.createElement('input');
+        tempInput.value = url;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(tempInput);
+
+        if (success) {
+            showNotification('URL copied to clipboard!');
+        } else {
+            showNotification('Failed to copy URL', true);
+        }
+    }
+}
+
+function loadStateFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const stateParam = urlParams.get('restore_state');
+
+    if (!stateParam) {
+        return false;
+    }
+
+    try {
+        // Decode and parse the state
+        const urlState = JSON.parse(decodeURIComponent(stateParam));
+
+        // Apply the state
+        const success = deserializeState(urlState);
+
+        if (success) {
+            showNotification('Configuration loaded successfully!', false, 'success')
+
+            // Clean up the URL after successful loading
+            // This prevents accidental reloads from re-applying the state
+            const url = new URL(window.location.href);
+            url.searchParams.delete('restore_state');
+            window.history.replaceState({}, document.title, url.toString());
+
+            return true;
+        } else {
+            showNotification('Failed to load configuration', true, 'error');
+        }
+    } catch (error) {
+        showNotification('Error to loading configuration', true, 'error');
+        console.error('Error loading state from URL:', error);
+    }
+
+    return false;
 }
 
 // #region DOM init
@@ -1663,7 +1763,19 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.addEventListener('input', updateVisualization);
     sidebar.addEventListener('change', updateVisualization);
 
+    document.getElementById('share-state-btn').addEventListener('click', () => {
+        copyStateUrl(false);
+    });
+
+    document.getElementById('share-state-and-data-btn').addEventListener('click', () => {
+        copyStateUrl(true);
+    });
+
+
     // Initial population and visualization
     populateShaderSelect();
+
+    loadStateFromUrl();
+
     updateVisualization();
 });
