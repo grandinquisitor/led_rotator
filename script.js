@@ -502,7 +502,7 @@ registerShader(
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
         p('frequency', ParamTypes.NUMBER, 1,
             "Number of complete ripples that occur between center and maximum radius.",
-            { min: 0.5, max: 20, step: 0.5 }),
+            { min: 0.5, max: 3, step: 0.25 }),
         p('phase_shift', ParamTypes.PERCENT, 0,
             "Shifts the ripple pattern radially.",
             { min: 0, max: 1, step: 0.05 }),
