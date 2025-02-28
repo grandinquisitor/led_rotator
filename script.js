@@ -1648,14 +1648,31 @@ function initCentroidUI() {
         const scaleY = canvas.height / rect.height;
 
         // Calculate clicked position in canvas coordinates
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        const canvasX = (e.clientX - rect.left) * scaleX;
+        const canvasY = (e.clientY - rect.top) * scaleY;
 
-        // Convert from canvas coordinates to our "mm" coordinates
-        // Reverse the transformation in the visualize function
-        // canvas.width/2 center point, scale = 10, offset = 20
-        const mmX = ((x - canvas.width / 2) / 10) + 20;
-        const mmY = (((canvas.height - y) - canvas.height / 2) / 10) + 20;
+        // Calculate bounds and scale exactly as visualize does
+        const pointsForBounds = points.map(([label, x, y]) => [label, x, y]);
+        const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
+        const boundsWidth = maxX - minX;
+        const boundsHeight = maxY - minY;
+        const boundsMiddleX = minX + boundsWidth / 2;
+        const boundsMiddleY = minY + boundsHeight / 2;
+
+        // Calculate the same scale factor that visualize uses
+        const xScale = (canvas.width - 80) / (boundsWidth || 1);
+        const yScale = (canvas.height - 80) / (boundsHeight || 1);
+        const scale = 10;
+        const dynamicScale = Math.min(xScale, yScale, scale);
+        const finalScale = dynamicScale > scale ? scale : dynamicScale;
+
+        // Transform canvas coordinates to centered, y-flipped system
+        const centeredX = canvasX - canvas.width / 2;
+        const centeredY = canvas.height / 2 - canvasY;
+
+        // Convert to internal mm coordinates
+        const mmX = centeredX / finalScale + boundsMiddleX;
+        const mmY = centeredY / finalScale + boundsMiddleY;
 
         // Calculate a threshold based on the LED package size
         // Using the diagonal of the LED as the threshold, with a small multiplier
