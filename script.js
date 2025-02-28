@@ -1030,22 +1030,100 @@ registerShader(
 
 registerShader(
     "quadrant_director",
-    "Assigns different angles to each quadrant for clear direction patterns at low resolution.",
+    "Assigns different angles to each quadrant, with tiebreaker rules.",
     [
         p('offset', ParamTypes.ANGLE, 0,
             "Angular offset applied to all quadrants.",
             { min: 0, max: Math.PI, step: Math.PI / 4 }),
+        p('border_width', ParamTypes.PERCENT, 0.05,
+            "Width of the border regions along the axes.",
+            { min: 0.01, max: 0.2, step: 0.01 }),
+        p('average_border_angles', ParamTypes.BOOLEAN, false,
+            "When enabled, border regions use the average angle of adjacent quadrants.")
     ],
     (args, params) => {
-        // Determine quadrant (simplified to just positive/negative x and y)
-        const x_positive = (args.dx >= 0);
-        const y_positive = (args.dy >= 0);
+        // Create a small border zone along each axis
+        const borderWidth = params.border_width;
 
-        // Assign different angles to each quadrant
-        if (x_positive && y_positive) return params.offset;          // Top right: 0° (right)
-        if (!x_positive && y_positive) return Math.PI / 2 + params.offset; // Top left: 90° (up)
-        if (!x_positive && !y_positive) return Math.PI + params.offset;  // Bottom left: 180° (left)
-        return 3 * Math.PI / 2 + params.offset;                              // Bottom right: 270° (down)
+        // Check which region the point falls into
+        const inXBorder = Math.abs(args.dx) <= borderWidth;
+        const inYBorder = Math.abs(args.dy) <= borderWidth;
+        const x_positive = args.dx > borderWidth;
+        const x_negative = args.dx < -borderWidth;
+        const y_positive = args.dy > borderWidth;
+        const y_negative = args.dy < -borderWidth;
+
+        // Define quadrant angles (with offset)
+        const topRightAngle = params.offset;                    // 0°
+        const topLeftAngle = Math.PI / 2 + params.offset;       // 90°
+        const bottomLeftAngle = Math.PI + params.offset;        // 180°
+        const bottomRightAngle = 3 * Math.PI / 2 + params.offset; // 270°
+
+        // Helper function to compute average angle between two angles
+        const averageAngles = (...angles) => {
+            let sinSum = 0, cosSum = 0;
+            for (const angle of angles) {
+                sinSum += Math.sin(angle);
+                cosSum += Math.cos(angle);
+            }
+            const avgAngle = Math.atan2(sinSum, cosSum);
+            return avgAngle < 0 ? avgAngle + 2 * Math.PI : avgAngle;
+        };
+
+        // Center region (where both axes cross)
+        if (inXBorder && inYBorder) {
+            // never average, because it's meaningless in this case
+            return Math.PI / 4 + params.offset; // 45° + offset
+        }
+
+        // X-axis regions
+        if (inXBorder) {
+            if (y_positive) {
+                if (params.average_border_angles) {
+                    // Average of top-left and top-right
+                    return averageAngles(topLeftAngle, topRightAngle);
+                } else {
+                    return topRightAngle; // 0° + offset (right)
+                }
+            }
+            if (y_negative) {
+                if (params.average_border_angles) {
+                    // Average of bottom-left and bottom-right
+                    return averageAngles(bottomLeftAngle, bottomRightAngle);
+                } else {
+                    return bottomLeftAngle; // 180° + offset (left)
+                }
+            }
+        }
+
+        // Y-axis regions
+        if (inYBorder) {
+            if (x_positive) {
+                if (params.average_border_angles) {
+                    // Average of top-right and bottom-right
+                    return averageAngles(topRightAngle, bottomRightAngle);
+                } else {
+                    return topLeftAngle; // 90° + offset (up)
+                }
+            }
+            if (x_negative) {
+                if (params.average_border_angles) {
+                    // Average of top-left and bottom-left
+                    return averageAngles(topLeftAngle, bottomLeftAngle);
+                } else {
+                    return bottomRightAngle; // 270° + offset (down)
+                }
+            }
+        }
+
+        // Quadrant regions (outside border zones)
+        if (x_positive && y_positive) return topRightAngle;    // Top right: 0° (right)
+        if (x_negative && y_positive) return topLeftAngle;     // Top left: 90° (up)
+        if (x_negative && y_negative) return bottomLeftAngle;  // Bottom left: 180° (left)
+        if (x_positive && y_negative) return bottomRightAngle; // Bottom right: 270° (down)
+
+        // Should never reach here, but just in case
+        return params.offset;
     }
 );
 
