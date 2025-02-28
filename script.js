@@ -637,15 +637,15 @@ registerShader("radial", "Returns the original radial angle as the led angle, ef
     [],
     (args) => args.radial_angle);
 
-registerShader("polar_simple", "Set the angle according to simple polar effects.",
+registerShader("polar_gradient", "Creates a gradient rotation pattern by blending radial angle with distance-based effects.",
     [
-        p('angle_effect', ParamTypes.ANGLE, 0, "Size of the effect of the polar theta.",
+        p('angular_offset', ParamTypes.ANGLE, 0, "Fixed angular offset applied to all LEDs.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
-        p('distance_effect', ParamTypes.PERCENT, 0, "Size of the effect of the radius."),
-        p('invert_distance', ParamTypes.BOOLEAN, 0, "Invert radius; closer points affected more.")
+        p('radial_intensity', ParamTypes.PERCENT, 0, "How strongly distance from center influences rotation angle."),
+        p('center_weighted', ParamTypes.BOOLEAN, false, "When enabled, LEDs closer to center receive stronger effect.")
     ],
     (args, params) =>
-        args.radial_angle + params.angle_effect + (2 * Math.PI * (params.invert_distance ? 1 - args.radius : args.radius) * params.distance_effect)
+        args.radial_angle + params.angular_offset + (2 * Math.PI * (params.center_weighted ? 1 - args.radius : args.radius) * params.radial_intensity)
 );
 
 registerShader("radial_circle", "Returns the original radial angle rotated by 180, effectively centering the rotation.",
