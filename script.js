@@ -2092,7 +2092,7 @@ function serializeStateToUrl(include_data) {
 
     if (include_data && typeof JSONCrush !== "undefined") {
         // Use JSONCrush to compress the data when include_data is true
-        const compressedState = JSONCrush(stateJson);
+        const compressedState = JSONCrush.crush(stateJson);
         url.searchParams.set('restore_state', compressedState);
         url.searchParams.set('compress', 'jsoncrush');
     } else {
@@ -2152,7 +2152,7 @@ function loadStateFromUrl() {
                 throw new Error('JSONCrush library not available');
             }
             // Decompress with JSONCrush if compression is specified
-            const decompressedState = JSONUncrush(stateParam);
+            const decompressedState = JSONCrush.uncrush(stateParam);
             urlState = JSON.parse(decompressedState);
         } else {
             // Standard decoding for uncompressed state
