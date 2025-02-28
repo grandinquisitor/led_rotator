@@ -1407,6 +1407,140 @@ function generateExportCSV() {
     return csv;
 }
 
+// #region state serialization
+
+function serializeState(include_data) {
+    const shaderName = document.getElementById('shader-select').value;
+    const shader = shaderRegistry[shaderName];
+    
+    // Create the state object with shader selection
+    const state = {
+        version: 1,
+        shaderName: shaderName,
+        shaderParams: {},
+        globalOptions: {
+            centralObject: document.getElementById('global-central-object').value || null,
+            centerThreshold: parseFloat(document.getElementById('global-center-threshold').value) || 0.001,
+            fixedCenterAngle: parseFloat(document.getElementById('global-fixed-center-angle').value) || 0
+        },
+        // Points are already stored in localStorage, but include them for completeness
+    };
+
+    if (include_data) {
+        state.points = points.map(p => [...p]); // Deep copy to avoid reference issues
+    }
+    
+    // Add all shader parameters
+    if (shader && shader.params) {
+        shader.params.forEach(param => {
+            const inputElem = document.getElementById(`param-${param.name}`);
+            if (param.paramType === ParamTypes.BOOLEAN) {
+                state.shaderParams[param.name] = inputElem?.checked || false;
+            } else {
+                state.shaderParams[param.name] = parseFloat(inputElem?.value) || param.defaultValue;
+            }
+        });
+    }
+    
+    return state;
+}
+
+// Restore application state from a serialized JSON object
+function deserializeState(state) {
+    // Validate the state object
+    if (!state || typeof state !== 'object' || !state.shaderName) {
+        console.error('Invalid state object:', state);
+        return false;
+    }
+    
+    try {
+        // Set shader selection
+        const shaderSelect = document.getElementById('shader-select');
+        if (shaderRegistry[state.shaderName]) {
+            shaderSelect.value = state.shaderName;
+            // This will trigger the change event to populate parameters
+            shaderSelect.dispatchEvent(new Event('change'));
+        } else {
+            console.warn(`Shader "${state.shaderName}" not found, using default`);
+        }
+        
+        // After parameters are populated, set their values
+        if (state.shaderParams) {
+            const shader = shaderRegistry[state.shaderName];
+            if (shader && shader.params) {
+                shader.params.forEach(param => {
+                    if (state.shaderParams.hasOwnProperty(param.name)) {
+                        const inputElem = document.getElementById(`param-${param.name}`);
+                        if (inputElem) {
+                            if (param.paramType === ParamTypes.BOOLEAN) {
+                                inputElem.checked = Boolean(state.shaderParams[param.name]);
+                            } else {
+                                inputElem.value = state.shaderParams[param.name];
+                                
+                                // Update value display for sliders if it exists
+                                const valueDisplay = inputElem.parentElement.querySelector('.value-display');
+                                if (valueDisplay) {
+                                    let displayValue = state.shaderParams[param.name];
+                                    if (param.paramType === ParamTypes.ANGLE) {
+                                        displayValue = Math.round(displayValue * (180 / Math.PI)) + '°';
+                                    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
+                                        displayValue = parseInt(displayValue);
+                                    } else {
+                                        displayValue = parseFloat(displayValue).toFixed(2);
+                                    }
+                                    valueDisplay.textContent = displayValue;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Set global options
+        if (state.globalOptions) {
+            if (state.globalOptions.centralObject !== undefined) {
+                document.getElementById('global-central-object').value = state.globalOptions.centralObject || '';
+            }
+            if (state.globalOptions.centerThreshold !== undefined) {
+                document.getElementById('global-center-threshold').value = state.globalOptions.centerThreshold;
+            }
+            if (state.globalOptions.fixedCenterAngle !== undefined) {
+                document.getElementById('global-fixed-center-angle').value = state.globalOptions.fixedCenterAngle;
+            }
+        }
+        
+        // Restore points if included
+        if (state.points && Array.isArray(state.points) && state.points.length > 0) {
+            points = state.points.map(p => [...p]); // Deep copy
+            savePointsToCSV();
+        }
+        
+        // Update visualization
+        updateVisualization();
+        return true;
+    } catch (error) {
+        console.error('Error restoring state:', error);
+        return false;
+    }
+}
+
+// Convert state to a JSON string for export
+function exportStateToJson() {
+    const state = serializeState();
+    return JSON.stringify(state);
+}
+
+function importStateFromJson(jsonString) {
+    try {
+        const state = JSON.parse(jsonString);
+        return deserializeState(state);
+    } catch (error) {
+        console.error('Error parsing state JSON:', error);
+        return false;
+    }
+}
+
 // #region DOM init
 
 document.addEventListener('DOMContentLoaded', () => {
