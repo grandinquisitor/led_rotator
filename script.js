@@ -1228,8 +1228,25 @@ function calculateAngles(points, rotationFormula, options = {}) {
     return result;
 }
 
+// Function to calculate bounds of the points dataset
+function calculatePointsBounds(pointsArray) {
+    if (!pointsArray || pointsArray.length === 0) {
+        return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    }
 
-// Draw the rotated rectangles on the canvas.
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    for (const [_, x, y] of pointsArray) {
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+    }
+
+    return { minX, maxX, minY, maxY };
+}
+
+// Updated visualize function with dynamic centering
 function visualize(pointsWithAngles, options = {}) {
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -1242,7 +1259,7 @@ function visualize(pointsWithAngles, options = {}) {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // For this demo, we define a fixed LED size (in “mm”) and a scale factor.
+    // For this demo, we define a fixed LED size (in "mm") and a scale factor.
     // You can adjust these values or add unit conversion as needed.
     const scale = 10;  // 10 pixels per mm
 
@@ -1257,6 +1274,25 @@ function visualize(pointsWithAngles, options = {}) {
     const centerY = options.customCenter ? options.customCenter.y : null;
     const { cx, cy } = computeCentroid(points, { x: centerX, y: centerY });
 
+    // Calculate the bounds of the current points dataset
+    const pointsForBounds = pointsWithAngles.map(({ label, x, y }) => [label, x, y]);
+    const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
+
+    // Calculate the center of the bounding box
+    const boundsWidth = maxX - minX;
+    const boundsHeight = maxY - minY;
+    const boundsMiddleX = minX + boundsWidth / 2;
+    const boundsMiddleY = minY + boundsHeight / 2;
+
+    // Determine a good scaling factor to fit all points on the canvas with some margin
+    // This provides automatic zooming in/out based on the data extent
+    const xScale = (canvas.width - 80) / (boundsWidth || 1); // 40px margin on each side
+    const yScale = (canvas.height - 80) / (boundsHeight || 1); // 40px margin on each side
+    const dynamicScale = Math.min(xScale, yScale, scale);
+
+    // For very small datasets, don't zoom in too much
+    const finalScale = dynamicScale > scale ? scale : dynamicScale;
+
     // For visualization, we translate the coordinate system:
     ctx.save();
     // Translate origin to the center of the canvas.
@@ -1270,8 +1306,8 @@ function visualize(pointsWithAngles, options = {}) {
     ctx.lineWidth = 1;
 
     // Adjust the centroid position for visualization
-    const centroidX = (cx - 20) * scale;
-    const centroidY = (cy - 20) * scale;
+    const centroidX = (cx - boundsMiddleX) * finalScale;
+    const centroidY = (cy - boundsMiddleY) * finalScale;
 
     // Draw horizontal line of the cross
     ctx.beginPath();
@@ -1287,9 +1323,9 @@ function visualize(pointsWithAngles, options = {}) {
 
     // Draw each LED as a rotated rectangle.
     pointsWithAngles.forEach(({ label, x, y, angleDeg }) => {
-        // Adjust point positions (here we subtract an offset to roughly center the design).
-        const px = (x - 20) * scale;
-        const py = (y - 20) * scale;
+        // Adjust point positions using the bounds center for dynamic centering
+        const px = (x - boundsMiddleX) * finalScale;
+        const py = (y - boundsMiddleY) * finalScale;
         const angleRad = angleDeg * Math.PI / 180;
 
         ctx.save();
@@ -1298,13 +1334,13 @@ function visualize(pointsWithAngles, options = {}) {
         // Draw a filled rectangle with a stroke.
         ctx.fillStyle = ledColor;
         ctx.strokeStyle = 'black';
-        ctx.fillRect(- (ledWidth * scale) / 2, - (ledHeight * scale) / 2, ledWidth * scale, ledHeight * scale);
-        ctx.strokeRect(- (ledWidth * scale) / 2, - (ledHeight * scale) / 2, ledWidth * scale, ledHeight * scale);
+        ctx.fillRect(- (ledWidth * finalScale) / 2, - (ledHeight * finalScale) / 2, ledWidth * finalScale, ledHeight * finalScale);
+        ctx.strokeRect(- (ledWidth * finalScale) / 2, - (ledHeight * finalScale) / 2, ledWidth * finalScale, ledHeight * finalScale);
 
         // Add direction indicator
         ctx.beginPath();
-        ctx.moveTo((ledWidth * scale) / 2, 0);
-        ctx.lineTo((ledWidth * scale) / 2 + 3, 0);
+        ctx.moveTo((ledWidth * finalScale) / 2, 0);
+        ctx.lineTo((ledWidth * finalScale) / 2 + 3, 0);
         ctx.strokeStyle = '#e74c3c';
         ctx.stroke();
 
