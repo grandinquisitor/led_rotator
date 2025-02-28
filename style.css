@@ -351,3 +351,14 @@ button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
+.grid-generator {
+    display: flex;
+    align-items: center;
+}
+
+.grid-generator input {
+    width: 60px;
+    text-align: center;
+}

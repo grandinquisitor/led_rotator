@@ -63,7 +63,7 @@ function getLedSize(package, units = Units.INCH) {
 }
 
 // #region localstorage and data
-let points = [
+let DEFAULT_POINTS = [
     ['D01', 17.018, 17.018],
     ['D02', 17.018, 8.382],
     ['D03', 21.082, 8.382],
@@ -118,6 +118,9 @@ let points = [
     ['D72', 12.7, 8.382]
 ];
 
+// Initialize points with a deep copy of DEFAULT_POINTS
+let points = DEFAULT_POINTS.map(point => [...point]);
+
 const STORAGE_KEYS = {
     POINTS_CSV: 'led-points-csv',
     POINTS_UNITS: 'led-points-units',
@@ -140,6 +143,8 @@ function loadPointsFromLocalStorage() {
 
     } catch (e) {
         console.error('Error loading points:', e);
+        // restore default points if there's an error
+        points = DEFAULT_POINTS.map(point => [...point]);
         savePointsToCSV();
     }
 }
@@ -168,6 +173,60 @@ function parseCSV(csvText, units = Units.MM) {
     }
     if (parsedPoints.length === 0) throw new Error('CSV contains no valid data');
     return parsedPoints;
+}
+
+// Update the restore function to use DEFAULT_POINTS
+function restoreDefaultData() {
+    // Convert DEFAULT_POINTS to CSV format
+    const csv = DEFAULT_POINTS.map(p => p.join(',')).join('\n');
+
+    // Fill the textarea with the default data CSV
+    document.getElementById('import-csv-text').value = csv;
+
+    // Clear any error messages
+    document.getElementById('import-error').textContent = '';
+}
+
+function generateGrid() {
+    const gridSize = parseInt(document.getElementById('grid-size').value);
+
+    // Validate input
+    if (isNaN(gridSize) || gridSize < 2 || gridSize > 20) {
+        document.getElementById('import-error').textContent = 'Grid size must be between 2 and 20.';
+        return;
+    }
+
+    // Base spacing in mil
+    const spacingMil = 125;
+
+    // Get current units selection
+    const units = document.getElementById('import-units').value;
+
+    // Convert spacing to mm if mm is selected
+    const spacing = units === 'mm' ? convertUnits(spacingMil, 'mil', 'mm') : spacingMil;
+
+    const newPoints = [];
+
+    // Generate grid points
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            const label = `D${row}_${col}`;
+
+            // Position
+            const x = col * spacing;
+            const y = row * spacing;
+
+            newPoints.push([label, x.toFixed(2), y.toFixed(2)]);
+        }
+    }
+
+    // Convert to CSV format
+    const csv = newPoints.map(p => p.join(',')).join('\n');
+
+    // Update the textarea with the generated CSV
+    document.getElementById('import-csv-text').value = csv;
+
+    document.getElementById('import-error').textContent = '';
 }
 
 // Save LED appearance settings to localStorage
@@ -1434,7 +1493,7 @@ function updateVisualization() {
 }
 
 
-// 3. Modify the crosshair mode to update custom coordinates
+// Modify the crosshair mode to update custom coordinates
 let g_customCenter = null; // Store the custom center coordinates
 let g_crosshairMode = false; // Flag to indicate crosshair mode
 
@@ -1895,6 +1954,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('export-cancel').addEventListener('click', () => {
         document.getElementById('export-modal').style.display = 'none';
+    });
+
+    document.getElementById('restore-default-btn').addEventListener('click', restoreDefaultData);
+    document.getElementById('generate-grid-btn').addEventListener('click', generateGrid);
+
+    document.getElementById('grid-size').addEventListener('change', (e) => {
+        document.getElementById('generate-grid-btn').innerText = `Generate ${e.target.value}x${e.target.value} Grid`;
     });
 
     // Add clipboard functionality for export
