@@ -1639,6 +1639,44 @@ function populateShaderParams() {
             container.appendChild(div);
         });
     }
+
+    if (shader.params && shader.params.length > 0) {
+        document.getElementById('shader-reset-button').style.display = 'block';
+    } else {
+        document.getElementById('shader-reset-button').style.display = 'none';
+    }
+}
+
+function resetShaderParameters() {
+    const shaderName = document.getElementById('shader-select').value;
+    const shader = shaderRegistry[shaderName];
+
+    if (!shader || !shader.params || shader.params.length === 0) {
+        return; // No parameters to reset
+    }
+
+    // Reset each parameter to its default value
+    shader.params.forEach(param => {
+        const inputElem = document.getElementById(`param-${param.name}`);
+        if (!inputElem) return;
+
+        if (param.paramType === ParamTypes.BOOLEAN) {
+            inputElem.checked = param.defaultValue === true;
+            // Trigger a change event for checkboxes
+            inputElem.dispatchEvent(new Event('change'));
+        } else {
+            inputElem.value = param.defaultValue.toString();
+            // Trigger the appropriate event to update any UI elements (like value displays)
+            const eventType = inputElem.type === 'range' ? 'input' : 'change';
+            inputElem.dispatchEvent(new Event(eventType));
+        }
+    });
+
+    // Update visualization and save state
+    updateVisualization();
+
+    // Show notification
+    showNotification('Parameters reset to default values', false, 'success');
 }
 
 let g_cachedAngles = [];
@@ -2183,6 +2221,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('grid-size').addEventListener('change', (e) => {
         document.getElementById('grid-size-text').innerText = `${e.target.value}x${e.target.value}`;
     });
+
+    document.getElementById('shader-reset-button').addEventListener('click', resetShaderParameters);
 
     // Add clipboard functionality for export
     document.getElementById('export-copy').addEventListener('click', () => {
