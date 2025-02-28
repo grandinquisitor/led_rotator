@@ -1103,8 +1103,6 @@ function computeCentroid(points, customCenter = null) {
 function calculateAngles(points, rotationFormula, options = {}) {
     const {
         customCenter = null,
-        centerThreshold = 0.001,
-        fixedCenterAngle = 0
     } = options;
 
     const { cx, cy } = computeCentroid(points, customCenter);
@@ -1119,18 +1117,14 @@ function calculateAngles(points, rotationFormula, options = {}) {
         const dist = distances[i];
 
         let angleRad;
-        if (dist < centerThreshold) {
-            angleRad = fixedCenterAngle * Math.PI / 180;
-        } else {
-            const radialAngle = Math.atan2(dy, dx);
-            angleRad = rotationFormula({
-                radial_angle: radialAngle,
-                radius: dist / maxDistance,
-                dx: dx / maxDistance,
-                dy: dy / maxDistance,
-                label: label
-            });
-        }
+        const radialAngle = Math.atan2(dy, dx);
+        angleRad = rotationFormula({
+            radial_angle: radialAngle,
+            radius: dist / maxDistance,
+            dx: dx / maxDistance,
+            dy: dy / maxDistance,
+            label: label
+        });
         let angleDeg = (angleRad * 180 / Math.PI) % 360;
         if (angleDeg < 0) angleDeg += 360;
         result.push({ label, x, y, angleDeg });
@@ -1393,8 +1387,6 @@ function updateVisualization() {
 
     const globalOptions = {
         customCenter: g_customCenter || null,
-        centerThreshold: parseFloat(document.getElementById('global-center-threshold').value) || 0.001,
-        fixedCenterAngle: parseFloat(document.getElementById('global-fixed-center-angle').value) || 0
     };
 
     g_cachedAngles = calculateAngles(points,
@@ -1566,15 +1558,18 @@ function serializeState(include_data) {
         shaderName: shaderName,
         shaderParams: {},
         globalOptions: {
-            centralObject: document.getElementById('global-central-object').value || null,
-            centerThreshold: parseFloat(document.getElementById('global-center-threshold').value) || 0.001,
-            fixedCenterAngle: parseFloat(document.getElementById('global-fixed-center-angle').value) || 0
+            customCenter: g_customCenter || null,
         },
         // Points are already stored in localStorage, but include them for completeness
     };
 
     if (include_data) {
         state.points = points.map(p => [...p]); // Deep copy to avoid reference issues
+        state.displayOptions = {
+            ledPackage: document.getElementById('led-package').value,
+            ledColor: document.getElementById('led-color').value,
+            backgroundColor: document.getElementById('background-color').value
+        };
     }
 
     // Add all shader parameters
@@ -1639,14 +1634,9 @@ function deserializeState(state) {
 
         // Set global options
         if (state.globalOptions) {
-            if (state.globalOptions.centralObject !== undefined) {
-                document.getElementById('global-central-object').value = state.globalOptions.centralObject || '';
-            }
-            if (state.globalOptions.centerThreshold !== undefined) {
-                document.getElementById('global-center-threshold').value = state.globalOptions.centerThreshold;
-            }
-            if (state.globalOptions.fixedCenterAngle !== undefined) {
-                document.getElementById('global-fixed-center-angle').value = state.globalOptions.fixedCenterAngle;
+            // Restore custom center if it exists
+            if (state.globalOptions.customCenter) {
+                g_customCenter = state.globalOptions.customCenter;
             }
         }
 
@@ -1654,6 +1644,18 @@ function deserializeState(state) {
         if (state.points && Array.isArray(state.points) && state.points.length > 0) {
             points = state.points.map(p => [...p]); // Deep copy
             savePointsToCSV();
+        }
+
+        if (state.displayOptions) {
+            if (state.displayOptions.ledPackage) {
+                document.getElementById('led-package').value = state.displayOptions.ledPackage;
+            }
+            if (state.displayOptions.ledColor) {
+                document.getElementById('led-color').value = state.displayOptions.ledColor;
+            }
+            if (state.displayOptions.backgroundColor) {
+                document.getElementById('background-color').value = state.displayOptions.backgroundColor;
+            }
         }
 
         // Update visualization
