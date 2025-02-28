@@ -1,6 +1,4 @@
-// #region utils
-
-// Units and LED package definitions
+// #region units and packages
 const Units = {
     MM: 'mm',
     MIL: 'mil',
@@ -64,9 +62,7 @@ function getLedSize(package, units = Units.INCH) {
     return sizeMm.map((d) => convertUnits(d, LED_PACKAGE_UNITS, units));
 }
 
-
-// #region data
-// Example set of points (label, x, y)
+// #region localstorage and data
 let points = [
     ['D01', 17.018, 17.018],
     ['D02', 17.018, 8.382],
@@ -122,21 +118,31 @@ let points = [
     ['D72', 12.7, 8.382]
 ];
 
+const STORAGE_KEYS = {
+    POINTS_CSV: 'led-points-csv',
+    POINTS_UNITS: 'led-points-units',
+    LED_PACKAGE: 'led-package',
+    LED_COLOR: 'led-color',
+    BACKGROUND_COLOR: 'led-background-color'
+};
+
 // Load initial points from localStorage
-(() => {
+function loadPointsFromLocalStorage() {
     try {
-        const savedCSV = localStorage.getItem('led-points-csv');
-        const savedUnits = localStorage.getItem('led-points-units') || Units.MM;
+        const savedCSV = localStorage.getItem(STORAGE_KEYS.POINTS_CSV);
+        const savedUnits = localStorage.getItem(STORAGE_KEYS.POINTS_UNITS) || Units.MM;
+
         if (savedCSV) {
             points = parseCSV(savedCSV, savedUnits);
         } else {
             savePointsToCSV();
         }
+
     } catch (e) {
         console.error('Error loading points:', e);
         savePointsToCSV();
     }
-})();
+}
 
 function parseCSV(csvText, units = Units.MM) {
     const lines = csvText.split('\n');
@@ -164,9 +170,40 @@ function parseCSV(csvText, units = Units.MM) {
     return parsedPoints;
 }
 
+// Save LED appearance settings to localStorage
+function saveAppearanceSettings() {
+    const ledPackage = document.getElementById('led-package').value;
+    const ledColor = document.getElementById('led-color').value;
+    const backgroundColor = document.getElementById('background-color').value;
+
+    localStorage.setItem(STORAGE_KEYS.LED_PACKAGE, ledPackage);
+    localStorage.setItem(STORAGE_KEYS.LED_COLOR, ledColor);
+    localStorage.setItem(STORAGE_KEYS.BACKGROUND_COLOR, backgroundColor);
+}
+
+// Load LED appearance settings from localStorage
+function loadAppearanceSettings() {
+    const ledPackage = localStorage.getItem(STORAGE_KEYS.LED_PACKAGE);
+    const ledColor = localStorage.getItem(STORAGE_KEYS.LED_COLOR);
+    const backgroundColor = localStorage.getItem(STORAGE_KEYS.BACKGROUND_COLOR);
+
+    if (ledPackage) {
+        document.getElementById('led-package').value = ledPackage;
+    }
+
+    if (ledColor) {
+        document.getElementById('led-color').value = ledColor;
+    }
+
+    if (backgroundColor) {
+        document.getElementById('background-color').value = backgroundColor;
+    }
+}
+
+// Modify the existing savePointsToCSV function to use the constant
 function savePointsToCSV() {
     const csv = points.map(p => p.join(',')).join('\n');
-    localStorage.setItem('led-points-csv', csv);
+    localStorage.setItem(STORAGE_KEYS.POINTS_CSV, csv);
 }
 
 // #region Shader Definitions
@@ -1780,6 +1817,9 @@ function loadStateFromUrl() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    loadPointsFromLocalStorage();
+    loadAppearanceSettings();
+
     // Modal handling
     document.getElementById('import-btn').addEventListener('click', () => {
         document.getElementById('import-csv-text').value = points.map(p => p.join(',')).join('\n');
@@ -1884,10 +1924,14 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsGroup.classList.toggle('collapsed');
     });
 
-    // 2. Add handlers for LED customization options
-    document.getElementById('led-package').addEventListener('change', updateVisualization);
-    document.getElementById('led-color').addEventListener('change', updateVisualization);
-    document.getElementById('background-color').addEventListener('change', updateVisualization);
+    // Add handlers for LED customization options
+    function appearanceUpdateHandler() {
+        saveAppearanceSettings();
+        updateVisualization(); // might be redundant with sidebar change handler
+    }
+    document.getElementById('led-package').addEventListener('change', appearanceUpdateHandler);
+    document.getElementById('led-color').addEventListener('change', appearanceUpdateHandler);
+    document.getElementById('background-color').addEventListener('change', appearanceUpdateHandler);
 
     // Set up shader select change handler
     document.getElementById('shader-select').addEventListener('change', populateShaderParams);
