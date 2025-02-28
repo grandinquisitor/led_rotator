@@ -126,11 +126,14 @@ button:hover {
 }
 
 button.share-btn {
-    background-color: var(--accent-color);
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--primary-dark);
+    border: 1px solid var(--primary-color);
+    font-weight: 500;
 }
 
 button.share-btn:hover {
-    background-color: var(--accent-color-dark);
+    background-color: rgba(52, 152, 219, 0.2);
 }
 
 .canvas-container {
