@@ -2172,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('generate-grid-btn').addEventListener('click', generateGrid);
 
     document.getElementById('grid-size').addEventListener('change', (e) => {
-        document.getElementById('generate-grid-btn').innerText = `Generate ${e.target.value}x${e.target.value} Grid`;
+        document.getElementById('grid-size-text').innerText = `${e.target.value}x${e.target.value}`;
     });
 
     // Add clipboard functionality for export
