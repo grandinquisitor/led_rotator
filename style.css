@@ -364,3 +364,40 @@ button:disabled {
     width: 60px;
     text-align: center;
 }
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 5px 0 10px 0;
+}
+
+.sidebar ul li {
+    margin-bottom: 8px;
+    padding-left: 5px;
+    position: relative;
+}
+
+.sidebar ul li:before {
+    content: "•";
+    color: var(--primary-color);
+    display: inline-block;
+    width: 12px;
+    margin-right: 4px;
+}
+
+.sidebar ul li a {
+    color: var(--primary-dark);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-block;
+    padding: 2px 0;
+}
+
+.sidebar ul li a:hover {
+    color: var(--primary-color);
+}
+
+.sidebar ul li a:active {
+    color: var(--accent-color);
+}
