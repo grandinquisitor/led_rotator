@@ -290,3 +290,65 @@ canvas {
 .notification.info {
     background-color: var(--primary-color);
 }
+
+
+.centroid-control {
+    border: 1px solid rgba(52, 152, 219, 0.2);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 15px;
+}
+
+.centroid-status {
+    background-color: var(--bg-color);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    color: #666;
+    border-left: 3px solid transparent;
+}
+
+#centroid-status-instructions {
+    display: none;
+}
+
+.centroid-status.instructions {
+    font-style: italic;
+}
+
+.centroid-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+button.primary-btn {
+    background-color: var(--primary-color);
+}
+
+button.primary-btn:hover {
+    background-color: var(--primary-dark);
+}
+
+button.outline-btn {
+    background-color: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+}
+
+button.outline-btn:hover:not(:disabled) {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+button.outline-btn:disabled {
+    border-color: #ccc;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Add styling for button when disabled */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

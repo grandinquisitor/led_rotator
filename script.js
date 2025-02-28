@@ -1401,22 +1401,27 @@ function updateVisualization() {
 let g_customCenter = null; // Store the custom center coordinates
 let g_crosshairMode = false; // Flag to indicate crosshair mode
 
-function initCrosshairMode() {
+
+function initCentroidUI() {
     const canvas = document.getElementById('canvas');
-    const statusDiv = document.getElementById('crosshair-status');
     const setCenterBtn = document.getElementById('set-center-btn');
+    const resetCenterBtn = document.getElementById('reset-center-btn');
+
+    // Update UI to reflect current centroid status
+    updateCentroidStatus();
 
     // Button click handler to activate crosshair mode
     setCenterBtn.addEventListener('click', () => {
         g_crosshairMode = true;
-        statusDiv.style.display = 'block';
-        statusDiv.textContent = 'Click on the canvas to set center point, or press Esc to cancel';
-        statusDiv.style.color = '#3498db';
-        setCenterBtn.disabled = true;
         canvas.style.cursor = 'crosshair';
+        setCenterBtn.disabled = true;
 
-        // Show the global params section if it's hidden
-        document.getElementById('global-params').style.display = 'block';
+        // Show notification
+        showNotification('Click on the canvas to set center point, or press Esc to cancel', false, 'info');
+
+        document.getElementById('centroid-status-instructions').style.display = 'block';
+        document.getElementById('default-centroid-status').style.display = 'none';
+        document.getElementById('custom-centroid-status').style.display = 'none';
     });
 
     // Canvas click handler to set the center point
@@ -1433,7 +1438,6 @@ function initCrosshairMode() {
         const y = (e.clientY - rect.top) * scaleY;
 
         // Convert from canvas coordinates to our "mm" coordinates
-        // Reverse the transformation in the visualize function
         // canvas.width/2 center point, scale = 10, offset = 20
         const mmX = ((x - canvas.width / 2) / 10) + 20;
         const mmY = (((canvas.height - y) - canvas.height / 2) / 10) + 20;
@@ -1442,28 +1446,31 @@ function initCrosshairMode() {
         g_customCenter = { x: mmX, y: mmY };
 
         // Provide user feedback
-        statusDiv.textContent = `Center set to X: ${mmX.toFixed(2)}, Y: ${mmY.toFixed(2)}`;
-        statusDiv.style.color = '#2ecc71';
+        showNotification(`Custom center set to X: ${mmX.toFixed(2)}, Y: ${mmY.toFixed(2)}`, false, 'success');
+
+        // Update UI to reflect new centroid status
+        updateCentroidStatus();
 
         // Update visualization
         updateVisualization();
 
-        // Reset crosshair mode after a delay
-        setTimeout(() => {
-            exitCrosshairMode();
+        // Reset crosshair mode
+        exitCrosshairMode();
+    });
 
-            // Reset status after another delay
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 2000);
-        }, 500);
+    // Reset center button handler
+    resetCenterBtn.addEventListener('click', () => {
+        g_customCenter = null;
+        showNotification('Center reset to default (centroid of all points)', false, 'success');
+        updateCentroidStatus();
+        updateVisualization();
     });
 
     // Handle Escape key to cancel crosshair mode
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && g_crosshairMode) {
             exitCrosshairMode();
-            statusDiv.style.display = 'none';
+            showNotification('Center selection cancelled', false, 'info');
         }
     });
 }
@@ -1473,25 +1480,31 @@ function exitCrosshairMode() {
     g_crosshairMode = false;
     document.getElementById('set-center-btn').disabled = false;
     document.getElementById('canvas').style.cursor = 'default';
+    document.getElementById('centroid-status-instructions').style.display = 'none';
+    updateCentroidStatus();
 }
 
-function initResetCenterButton() {
-    const resetBtn = document.getElementById('reset-center-btn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            g_customCenter = null;
+function updateCentroidStatus() {
+    const resetCenterBtn = document.getElementById('reset-center-btn');
+    const defaultStatus = document.getElementById('default-centroid-status');
+    const customStatus = document.getElementById('custom-centroid-status');
 
-            const statusDiv = document.getElementById('crosshair-status');
-            statusDiv.textContent = 'Center reset to default (centroid of all points)';
-            statusDiv.style.color = '#2ecc71';
-            statusDiv.style.display = 'block';
+    // Update reset button state
+    resetCenterBtn.disabled = g_customCenter === null;
 
-            updateVisualization();
+    // Update status indicator
+    if (g_customCenter) {
+        // Update coordinate values
+        document.getElementById('custom-center-x').textContent = g_customCenter.x.toFixed(2);
+        document.getElementById('custom-center-y').textContent = g_customCenter.y.toFixed(2);
 
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 2000);
-        });
+        // Show custom status, hide default status
+        defaultStatus.style.display = 'none';
+        customStatus.style.display = 'block';
+    } else {
+        // Show default status, hide custom status
+        defaultStatus.style.display = 'block';
+        customStatus.style.display = 'none';
     }
 }
 
@@ -1893,8 +1906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         copyStateUrl(true);
     });
 
-    initCrosshairMode();
-    initResetCenterButton();
+    initCentroidUI();
 
     // Initial population and visualization
     populateShaderSelect();

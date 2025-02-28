@@ -28,12 +28,17 @@
             <div class="control-group" id="global-options-group">
                 <h3 class="collapsible-header">Global Options <span class="collapse-icon">▼</span></h3>
                 <div class="collapsible-content">
-                    <div class="control-item">
-                        <button id="set-center-btn" class="full-width-btn">Set Center Point</button>
-                        <div id="crosshair-status" class="param-description" style="display: none; color: #3498db;">
-                            Click on the canvas to set center point, or press Esc to cancel
+                    <div class="control-item centroid-control">
+                        <label>Centroid</label>
+                        <div id="default-centroid-status" class="centroid-status">Default centroid</div>
+                        <div id="custom-centroid-status" class="centroid-status active">
+                            Override X: <span id="custom-center-x">0.00</span>, Y: <span id="custom-center-y">0.00</span>
                         </div>
-                        <button id="reset-center-btn" class="outline-btn">Reset to Default Center</button>
+                        <div id="centroid-status-instructions" class="centroid-status instructions">Choose with mouse (ESC to cancel)</div>
+                        <div class="button-group centroid-buttons">
+                            <button id="set-center-btn" class="primary-btn">Set Custom Center</button>
+                            <button id="reset-center-btn" class="outline-btn" disabled>Reset to Default</button>
+                        </div>
                     </div>
 
                     <div class="control-item">
@@ -81,15 +86,15 @@
             </div>
 
             <div>
-            <div class="button-group">
-                <button id="share-state-btn" class="share-btn">Share Shader</button>
-                <button id="share-state-and-data-btn" class="share-btn">Share Shader & Data</button>
+                <div class="button-group">
+                    <button id="share-state-btn" class="share-btn">Share Shader</button>
+                    <button id="share-state-and-data-btn" class="share-btn">Share Shader & Data</button>
+                </div>
+                <div class="button-group">
+                    <button id="import-btn" class="data-btn">Import CSV</button>
+                    <button id="export-btn" class="data-btn">Export CSV</button>
+                </div>
             </div>
-            <div class="button-group">
-                <button id="import-btn" class="data-btn">Import CSV</button>
-                <button id="export-btn" class="data-btn">Export CSV</button>
-            </div>
-        </div>
         </div>
 
         <div class="canvas-container">
