@@ -232,8 +232,7 @@ canvas {
     }
 }
 
-/* Collapsible section styles */
-.collapsible-header {
+.collapsible-section .collapsible-header {
     cursor: pointer;
     user-select: none;
     display: flex;
@@ -241,23 +240,27 @@ canvas {
     align-items: center;
 }
 
-.collapse-icon {
+.collapsible-section .collapse-icon {
     transition: transform 0.3s;
     font-size: 0.8rem;
 }
 
-.collapsed .collapse-icon {
+.collapsible-section.collapsed .collapse-icon {
     transform: rotate(-90deg);
 }
 
-.collapsible-content {
+.collapsible-section .collapsible-content {
     overflow: hidden;
     transition: max-height 0.3s ease-out;
     max-height: 1000px;
 }
 
-.collapsed .collapsible-content {
+.collapsible-section.collapsed .collapsible-content {
     max-height: 0;
+}
+
+.collapsible-header:hover {
+    color: var(--primary-color);
 }
 
 .notification {

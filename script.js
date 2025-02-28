@@ -1772,7 +1772,7 @@ function initCentroidUI() {
     // Reset center button handler
     resetCenterBtn.addEventListener('click', () => {
         g_customCenter = null;
-        showNotification('Center reset to default (centroid of all points)', false, 'success');
+        showNotification('Using natural centroid', false, 'success');
         updateCentroidStatus();
         updateVisualization();
     });
@@ -1844,6 +1844,26 @@ function showNotification(message, isError = false, type = null) {
     notification.timeout = setTimeout(() => {
         notification.classList.remove('show');
     }, 3000);
+}
+
+function initCollapsibleSections() {
+    // Find all collapsible sections
+    const sections = document.querySelectorAll('.collapsible-section');
+
+    // Set up each section
+    sections.forEach(section => {
+        const header = section.querySelector('.collapsible-header');
+
+        // Optional: Some sections can start collapsed by default
+        if (section.dataset.defaultCollapsed === 'true') {
+            section.classList.add('collapsed');
+        }
+
+        // Add click handler to header
+        header.addEventListener('click', () => {
+            section.classList.toggle('collapsed');
+        });
+    });
 }
 
 // #region state serialization
@@ -2194,16 +2214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const collapsibleHeader = document.querySelector('.collapsible-header');
-    const optionsGroup = document.getElementById('global-options-group');
-
-    // Default to collapsed
-    optionsGroup.classList.add('collapsed');
-
-    // Toggle collapse state when header is clicked
-    collapsibleHeader.addEventListener('click', () => {
-        optionsGroup.classList.toggle('collapsed');
-    });
+    initCollapsibleSections();
 
     // Add handlers for LED customization options
     function appearanceUpdateHandler() {

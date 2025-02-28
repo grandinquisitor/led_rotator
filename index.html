@@ -25,22 +25,29 @@
                 <div id="shader-params-container"></div>
             </div>
 
-            <div class="control-group" id="global-options-group">
-                <h3 class="collapsible-header">Global Options <span class="collapse-icon">▼</span></h3>
+            <div class="control-group collapsible-section" data-default-collapsed="true">
+                <h3 class="collapsible-header">Global Params <span class="collapse-icon">▼</span></h3>
                 <div class="collapsible-content">
                     <div class="control-item centroid-control">
                         <label>Centroid</label>
-                        <div id="default-centroid-status" class="centroid-status">Default centroid</div>
+                        <div id="default-centroid-status" class="centroid-status">natural centroid</div>
                         <div id="custom-centroid-status" class="centroid-status active">
-                            Override X: <span id="custom-center-x">0.00</span>, Y: <span id="custom-center-y">0.00</span>
+                            Override X: <span id="custom-center-x">0.00</span>, Y: <span
+                                id="custom-center-y">0.00</span>
                         </div>
-                        <div id="centroid-status-instructions" class="centroid-status instructions">Choose with mouse (ESC to cancel)</div>
+                        <div id="centroid-status-instructions" class="centroid-status instructions">Choose with mouse
+                            (ESC to cancel)</div>
                         <div class="button-group centroid-buttons">
                             <button id="set-center-btn" class="primary-btn">Set Custom Center</button>
                             <button id="reset-center-btn" class="outline-btn" disabled>Reset to Default</button>
                         </div>
                     </div>
+                </div>
+            </div>
 
+            <div class="control-group collapsible-section" data-default-collapsed="true">
+                <h3 class="collapsible-header">Appearance <span class="collapse-icon">▼</span></h3>
+                <div class="collapsible-content">
                     <div class="control-item">
                         <label for="led-package">LED Package:</label>
                         <select id="led-package">
