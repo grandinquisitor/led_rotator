@@ -153,15 +153,24 @@ function loadPointsFromLocalStorage() {
 function parseCSV(csvText, units = Units.MM) {
     const lines = csvText.split('\n');
     const parsedPoints = [];
+    const uniqueLabelSet = new Set();
+
     for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
+        if (trimmed.startsWith('#')) continue;
         const parts = trimmed.split(',').map(p => p.trim());
         if (parts.length !== 3) throw new Error(`Invalid line: ${line}`);
         const label = parts[0];
         const x = parseFloat(parts[1]);
         const y = parseFloat(parts[2]);
         if (isNaN(x) || isNaN(y)) throw new Error(`Invalid numbers in line: ${line}`);
+
+        // enforce label uniqueness
+        if (uniqueLabelSet.has(label)) {
+            throw new Error(`Duplicate label found: "${label}". All LED labels must be unique.`);
+        }
+        uniqueLabelSet.add(label);
 
         // Convert coordinates to mm if they're in a different unit
         if (units !== Units.MM) {
