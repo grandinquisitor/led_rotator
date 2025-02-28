@@ -702,6 +702,10 @@ registerShader(
             "Number of discrete spin states; higher values yield finer angular quantization.",
             { min: 2, max: null, step: 1 })
     ], (args, params) => {
+        if (params.spin_states === 2) {
+            return Math.round(args.radial_angle * 2 / (2 * Math.PI)) * (Math.PI / 2);
+        }
+
         const quantized = Math.round(args.radial_angle * params.spin_states / (2 * Math.PI)) *
             (2 * Math.PI / params.spin_states);
         return quantized + Math.PI / params.spin_states;
