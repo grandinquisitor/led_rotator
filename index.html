@@ -28,6 +28,13 @@
             <div class="control-group" id="global-options-group">
                 <h3 class="collapsible-header">Global Options <span class="collapse-icon">▼</span></h3>
                 <div class="collapsible-content">
+                    <div class="control-item">
+                        <button id="set-center-btn" class="full-width-btn">Set Center Point</button>
+                        <div id="crosshair-status" class="param-description" style="display: none; color: #3498db;">
+                            Click on the canvas to set center point, or press Esc to cancel
+                        </div>
+                        <button id="reset-center-btn" class="outline-btn">Reset to Default Center</button>
+                    </div>
                     <div class="control-item central">
                         <label for="global-central-object">Central Object ID:</label>
                         <input type="text" id="global-central-object" placeholder="Leave empty for centroid">

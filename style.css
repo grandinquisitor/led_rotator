@@ -257,10 +257,6 @@ canvas {
     max-height: 0;
 }
 
-.control-item.central {
-    display: none;
-}
-
 .notification {
     display: none;
     position: fixed;

@@ -1087,15 +1087,11 @@ registerShader(
 // #region computation/rendering
 
 // Compute the centroid of the points.
-function computeCentroid(points, centralObject = null) {
-    if (centralObject) {
-        for (let [label, x, y] of points) {
-            if (label === centralObject) {
-                return { cx: x, cy: y };
-            }
-        }
-        throw new Error(`Central object ${centralObject} not found`);
+function computeCentroid(points, customCenter = null) {
+    if (customCenter && typeof customCenter.x === 'number' && typeof customCenter.y === 'number') {
+        return { cx: customCenter.x, cy: customCenter.y };
     }
+
     let sumX = 0, sumY = 0;
     for (let [label, x, y] of points) {
         sumX += x;
@@ -1106,12 +1102,12 @@ function computeCentroid(points, centralObject = null) {
 
 function calculateAngles(points, rotationFormula, options = {}) {
     const {
-        centralObject = null,
+        customCenter = null,
         centerThreshold = 0.001,
         fixedCenterAngle = 0
     } = options;
 
-    const { cx, cy } = computeCentroid(points, centralObject);
+    const { cx, cy } = computeCentroid(points, customCenter);
     const distances = points.map(([label, x, y]) => Math.hypot(x - cx, y - cy));
     const maxDistance = distances.length ? Math.max(...distances) : 0;
 
@@ -1167,12 +1163,37 @@ function visualize(pointsWithAngles, options = {}) {
     // Get LED dimensions based on package
     const [ledWidth, ledHeight] = getLedSize(ledPackage, Units.MM);
 
+    const centerX = options.customCenter ? options.customCenter.x : null;
+    const centerY = options.customCenter ? options.customCenter.y : null;
+    const { cx, cy } = computeCentroid(points, { x: centerX, y: centerY });
+
     // For visualization, we translate the coordinate system:
     ctx.save();
     // Translate origin to the center of the canvas.
     ctx.translate(canvas.width / 2, canvas.height / 2);
     // Flip the y-axis so positive y goes up.
     ctx.scale(1, -1);
+
+    // Draw the centroid cross
+    const crossSize = 4; // Size of the cross in screen pixels
+    ctx.strokeStyle = '#c0c0c0';
+    ctx.lineWidth = 1;
+
+    // Adjust the centroid position for visualization
+    const centroidX = (cx - 20) * scale;
+    const centroidY = (cy - 20) * scale;
+
+    // Draw horizontal line of the cross
+    ctx.beginPath();
+    ctx.moveTo(centroidX - crossSize, centroidY);
+    ctx.lineTo(centroidX + crossSize, centroidY);
+    ctx.stroke();
+
+    // Draw vertical line of the cross
+    ctx.beginPath();
+    ctx.moveTo(centroidX, centroidY - crossSize);
+    ctx.lineTo(centroidX, centroidY + crossSize);
+    ctx.stroke();
 
     // Draw each LED as a rotated rectangle.
     pointsWithAngles.forEach(({ label, x, y, angleDeg }) => {
@@ -1371,7 +1392,7 @@ function updateVisualization() {
     }
 
     const globalOptions = {
-        centralObject: document.getElementById('global-central-object').value || null,
+        customCenter: g_customCenter || null,
         centerThreshold: parseFloat(document.getElementById('global-center-threshold').value) || 0.001,
         fixedCenterAngle: parseFloat(document.getElementById('global-fixed-center-angle').value) || 0
     };
@@ -1380,7 +1401,106 @@ function updateVisualization() {
         (args) => shader.fn(args, shaderParams),
         globalOptions
     );
-    visualize(g_cachedAngles);
+    visualize(g_cachedAngles, globalOptions);
+}
+
+
+// 3. Modify the crosshair mode to update custom coordinates
+let g_customCenter = null; // Store the custom center coordinates
+let g_crosshairMode = false; // Flag to indicate crosshair mode
+
+function initCrosshairMode() {
+    const canvas = document.getElementById('canvas');
+    const statusDiv = document.getElementById('crosshair-status');
+    const setCenterBtn = document.getElementById('set-center-btn');
+
+    // Button click handler to activate crosshair mode
+    setCenterBtn.addEventListener('click', () => {
+        g_crosshairMode = true;
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = 'Click on the canvas to set center point, or press Esc to cancel';
+        statusDiv.style.color = '#3498db';
+        setCenterBtn.disabled = true;
+        canvas.style.cursor = 'crosshair';
+
+        // Show the global params section if it's hidden
+        document.getElementById('global-params').style.display = 'block';
+    });
+
+    // Canvas click handler to set the center point
+    canvas.addEventListener('click', (e) => {
+        if (!g_crosshairMode) return;
+
+        // Get canvas position and dimensions
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        // Calculate clicked position in canvas coordinates
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        // Convert from canvas coordinates to our "mm" coordinates
+        // Reverse the transformation in the visualize function
+        // canvas.width/2 center point, scale = 10, offset = 20
+        const mmX = ((x - canvas.width / 2) / 10) + 20;
+        const mmY = (((canvas.height - y) - canvas.height / 2) / 10) + 20;
+
+        // Update our custom center
+        g_customCenter = { x: mmX, y: mmY };
+
+        // Provide user feedback
+        statusDiv.textContent = `Center set to X: ${mmX.toFixed(2)}, Y: ${mmY.toFixed(2)}`;
+        statusDiv.style.color = '#2ecc71';
+
+        // Update visualization
+        updateVisualization();
+
+        // Reset crosshair mode after a delay
+        setTimeout(() => {
+            exitCrosshairMode();
+
+            // Reset status after another delay
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 2000);
+        }, 500);
+    });
+
+    // Handle Escape key to cancel crosshair mode
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && g_crosshairMode) {
+            exitCrosshairMode();
+            statusDiv.style.display = 'none';
+        }
+    });
+}
+
+// Helper function to exit crosshair mode
+function exitCrosshairMode() {
+    g_crosshairMode = false;
+    document.getElementById('set-center-btn').disabled = false;
+    document.getElementById('canvas').style.cursor = 'default';
+}
+
+function initResetCenterButton() {
+    const resetBtn = document.getElementById('reset-center-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            g_customCenter = null;
+
+            const statusDiv = document.getElementById('crosshair-status');
+            statusDiv.textContent = 'Center reset to default (centroid of all points)';
+            statusDiv.style.color = '#2ecc71';
+            statusDiv.style.display = 'block';
+
+            updateVisualization();
+
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 2000);
+        });
+    }
 }
 
 function showNotification(message, isError = false, type = null) {
@@ -1771,6 +1891,8 @@ document.addEventListener('DOMContentLoaded', () => {
         copyStateUrl(true);
     });
 
+    initCrosshairMode();
+    initResetCenterButton();
 
     // Initial population and visualization
     populateShaderSelect();
