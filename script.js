@@ -443,35 +443,35 @@ registerShader(
     });
 
 registerShader(
-    "threshold_angles",
-    "Assigns different angles to LEDs based on their distance from the center, with an optional crossfade.",
+    "concentric_zones",
+    "Creates two distinct zones of LED orientation with an optional smooth transition between them.",
     [
-        p('inner_angle', ParamTypes.ANGLE, 0,
-            "Angle for LEDs inside the threshold radius.",
+        p('core_angle', ParamTypes.ANGLE, 0,
+            "Orientation angle for LEDs in the inner zone.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
         p('outer_angle', ParamTypes.ANGLE, Math.PI / 2,
-            "Angle for LEDs outside the threshold radius.",
+            "Orientation angle for LEDs in the outer zone.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
-        p('threshold', ParamTypes.PERCENT, 0.5,
-            "Radial threshold that determines the boundary between inner and outer regions.",
+        p('boundary_radius', ParamTypes.PERCENT, 0.5,
+            "Location of the boundary between inner and outer zones (as % of max radius).",
             { min: 0, max: 1, step: 0.05 }),
-        p('fade_width', ParamTypes.PERCENT, 0.1,
-            "Width of the transition zone for crossfading between the two angles (0 means a hard edge).",
+        p('blend_width', ParamTypes.PERCENT, 0.1,
+            "Width of the transition band between zones (0 creates a sharp boundary).",
             { min: 0, max: 1, step: 0.01 })
     ],
     (args, params) => {
-        // If fade_width is 0 or very small, use a hard threshold
-        if (params.fade_width < 0.001) {
-            return args.radius <= params.threshold ? params.inner_angle : params.outer_angle;
+        // If blend_width is 0 or very small, use a hard threshold
+        if (params.blend_width < 0.001) {
+            return args.radius <= params.boundary_radius ? params.core_angle : params.outer_angle;
         }
 
         // Calculate the crossfade boundaries
-        const lowerBound = Math.max(0, params.threshold - params.fade_width / 2);
-        const upperBound = Math.min(1, params.threshold + params.fade_width / 2);
+        const lowerBound = Math.max(0, params.boundary_radius - params.blend_width / 2);
+        const upperBound = Math.min(1, params.boundary_radius + params.blend_width / 2);
 
         if (args.radius <= lowerBound) {
             // Inside the inner region
-            return params.inner_angle;
+            return params.core_angle;
         } else if (args.radius >= upperBound) {
             // Outside the outer region
             return params.outer_angle;
@@ -481,10 +481,10 @@ registerShader(
 
             // Linear interpolation between the two angles
             // We need to handle the case where the angles cross the 0/2π boundary
-            const diff = params.outer_angle - params.inner_angle;
+            const diff = params.outer_angle - params.core_angle;
             const shortestDiff = Math.abs(diff) <= Math.PI ? diff : diff - Math.sign(diff) * 2 * Math.PI;
 
-            return params.inner_angle + t * shortestDiff;
+            return params.core_angle + t * shortestDiff;
         }
     }
 );
