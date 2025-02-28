@@ -363,13 +363,21 @@ registerShader("radial_wave",
         args.radial_angle + Math.sin(args.radius * params.frequency) * params.amplitude
 );
 
-// Perpendicular Rotation: Rotates the angle to be perpendicular to the radial direction.
-registerShader(
-    "radial_perpendicular",
-    "Rotates the angle by subtracting the radial angle from 90 degrees, resulting in a perpendicular orientation.",
+registerShader("radial_rays", "Orients LEDs to point directly away from the center, creating a radiating star pattern.",
     [],
-    (args) =>
-        -args.radial_angle + Math.PI / 2
+    (args) => args.radial_angle);
+
+registerShader(
+    "radial_orbit",
+    "Orients LEDs perpendicular to the radius, creating a circular flow pattern around the center.",
+    [
+        p('counter_rotate', ParamTypes.BOOLEAN, false,
+            "When enabled, LEDs rotate in the counter-clockwise direction (default is clockwise).")
+    ],
+    (args, params) =>
+        params.counter_rotate ?
+            -args.radial_angle + Math.PI / 2 :
+            args.radial_angle + Math.PI / 2
 );
 
 // Spiral Rotation: Creates a spiral by increasing the rotation with distance.
@@ -632,11 +640,6 @@ registerShader(
         return phase + params.phase_offset;
     });
 
-// Centroid Rotation: Returns the unmodified radial angle.
-registerShader("radial", "Returns the original radial angle as the led angle, effectively centering the rotation.",
-    [],
-    (args) => args.radial_angle);
-
 registerShader("polar_gradient", "Creates a gradient rotation pattern by blending radial angle with distance-based effects.",
     [
         p('angular_offset', ParamTypes.ANGLE, 0, "Fixed angular offset applied to all LEDs.",
@@ -647,10 +650,6 @@ registerShader("polar_gradient", "Creates a gradient rotation pattern by blendin
     (args, params) =>
         args.radial_angle + params.angular_offset + (2 * Math.PI * (params.center_weighted ? 1 - args.radius : args.radius) * params.radial_intensity)
 );
-
-registerShader("radial_circle", "Returns the original radial angle rotated by 180, effectively centering the rotation.",
-    [],
-    (args) => args.radial_angle + Math.PI / 2);
 
 // Flower Pattern: Creates a petal-like pattern using sinusoidal modulation.
 registerShader(
@@ -741,7 +740,7 @@ registerShader(
 
 // Random
 registerShader(
-    "random", null, [], (args, params) => Math.random() * 2 * Math.PI);
+    "random", "Completely random", [], (args, params) => Math.random() * 2 * Math.PI);
 
 registerShader(
     "vortex",
