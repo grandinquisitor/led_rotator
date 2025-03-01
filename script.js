@@ -1834,14 +1834,6 @@ function initCentroidUI() {
         updateCentroidStatus();
         updateVisualization();
     });
-
-    // Handle Escape key to cancel crosshair mode
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && g_crosshairMode) {
-            exitCrosshairMode();
-            showNotification('Center selection cancelled', false, 'info');
-        }
-    });
 }
 
 // Helper function to exit crosshair mode
@@ -2232,21 +2224,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('import-cancel').addEventListener('click', () => {
+    function closeImportModal() {
         document.getElementById('import-modal').style.display = 'none';
-    });
+    }
 
-    document.getElementById('import-close').addEventListener('click', () => {
-        document.getElementById('import-modal').style.display = 'none';
-    });
-
-    document.getElementById('export-close').addEventListener('click', () => {
+    function closeExportModal() {
         document.getElementById('export-modal').style.display = 'none';
-    });
+    }
 
-    document.getElementById('export-cancel').addEventListener('click', () => {
-        document.getElementById('export-modal').style.display = 'none';
-    });
+    document.getElementById('import-cancel').addEventListener('click', closeImportModal);
+    document.getElementById('import-close').addEventListener('click', closeImportModal);
+    document.getElementById('export-close').addEventListener('click', closeExportModal);
+    document.getElementById('export-cancel').addEventListener('click', closeExportModal);
 
     document.getElementById('restore-default-btn').addEventListener('click', restoreDefaultData);
     document.getElementById('generate-grid-btn').addEventListener('click', generateGrid);
@@ -2322,6 +2311,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('share-state-and-data-btn').addEventListener('click', () => {
         copyStateUrl(true);
+    });
+
+    // Handle Escape key to cancel crosshair mode
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (g_crosshairMode) {
+                exitCrosshairMode();
+                showNotification('Center selection cancelled', false, 'info');
+            } else if (document.getElementById('export-modal').style.display !== 'none') {
+                closeExportModal();
+            } else if (document.getElementById('import-modal').style.display !== 'none') {
+                closeImportModal();
+            }
+        }
     });
 
     initCentroidUI();
