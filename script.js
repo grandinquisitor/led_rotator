@@ -1543,13 +1543,31 @@ function populateShaderSelect() {
     select.dispatchEvent(new Event('change'));
 }
 
+// Populates the UI with controls for the selected shader's parameters
 function populateShaderParams() {
     const container = document.getElementById('shader-params-container');
     container.innerHTML = '';
     const shaderName = document.getElementById('shader-select').value;
     const shader = shaderRegistry[shaderName];
 
-    // Add shader description if available
+    // Add shader description
+    addShaderDescription(shader, container);
+
+    // Create UI controls for each parameter
+    if (shader?.params?.length) {
+        shader.params.forEach(param => {
+            createParameterControl(param, container);
+        });
+
+        // Show reset button if there are parameters
+        document.getElementById('shader-reset-button').style.display = 'block';
+    } else {
+        document.getElementById('shader-reset-button').style.display = 'none';
+    }
+}
+
+// Adds the shader description to the container if available
+function addShaderDescription(shader, container) {
     if (shader?.desc) {
         const descDiv = document.createElement('div');
         descDiv.classList.add('param-description');
@@ -1557,105 +1575,171 @@ function populateShaderParams() {
         descDiv.textContent = shader.desc;
         container.appendChild(descDiv);
     }
+}
 
-    if (shader?.params) {
-        shader.params.forEach(param => {
-            const div = document.createElement('div');
-            div.classList.add('control-item');
+// Creates the appropriate control for a shader parameter
+function createParameterControl(param, container) {
+    const div = document.createElement('div');
+    div.classList.add('control-item');
 
-            const labelElem = document.createElement('label');
-            labelElem.setAttribute('for', `param-${param.name}`);
-            labelElem.textContent = param.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-            const input = document.createElement('input');
-            input.id = `param-${param.name}`;
-
-            if (param.paramType === ParamTypes.BOOLEAN) {
-                // Create a checkbox for boolean parameters
-                input.type = 'checkbox';
-                input.id = `param-${param.name}`;
-                input.checked = param.defaultValue === true;
-                input.style.width = 'auto';
-                input.style.marginLeft = '10px';
-
-                labelElem.classList.add('checkbox-label');
-
-            } else if ((param.min !== null && param.max !== null) || param.paramType === ParamTypes.PERCENT || param.paramType === ParamTypes.ANGLE) {
-                input.type = 'range';
-
-                function formatValue(value, param) {
-                    if (param.paramType === ParamTypes.ANGLE) {
-                        // round to nearest 0.5 degrees
-                        return Math.round(value * (180 / Math.PI) * 2) / 2 + '°';
-                    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
-                        return parseInt(value);
-                    } else if (param.paramType === ParamTypes.PERCENT) {
-                        // round to nearest 0.5%
-                        return Math.round(parseFloat(value) * 200) / 2 + '%';
-                    } else {
-                        return parseFloat(value).toFixed(2);
-                    }
-                }
-
-                // Add value display for sliders
-                const valueDisplay = document.createElement('span');
-                valueDisplay.classList.add('value-display');
-                valueDisplay.textContent = formatValue(param.defaultValue, param);
-                valueDisplay.style.marginLeft = '8px';
-                valueDisplay.style.fontSize = '0.9rem';
-
-                input.addEventListener('input', () => {
-                    valueDisplay.textContent = formatValue(input.value, param);
-                });
-
-                labelElem.appendChild(valueDisplay);
-            } else {
-                input.type = 'number';
-            }
-
-            if (param.min !== null) input.min = param.min;
-            if (param.max !== null) input.max = param.max;
-
-            if (param.step !== null) {
-                input.step = param.step;
-            } else if (param.paramType === ParamTypes.INTEGER) {
-                input.step = 1;
-            } else if (param.paramType === ParamTypes.PERCENT) {
-                input.step = 0.05;
-            }
-
-            if (param.paramType === ParamTypes.PERCENT) {
-                if (param.min === null) input.min = 0;
-                if (param.max === null) input.max = 1;
-            } else if (param.paramType === ParamTypes.ANGLE) {
-                if (param.min === null) input.min = 0;
-                if (param.max === null) input.max = 2 * Math.PI;
-            }
-
-            // MUST be set AFTER min/max/step, or else the browser may round the value!
-            if (param.paramType !== ParamTypes.BOOLEAN) {
-                input.value = param.defaultValue.toString();
-            }
-
-            div.appendChild(labelElem);
-            div.appendChild(input);
-
-            if (param.description) {
-                const description = document.createElement('div');
-                description.classList.add('param-description');
-                description.textContent = param.description;
-                div.appendChild(description);
-            }
-
-            container.appendChild(div);
-        });
-    }
-
-    if (shader.params && shader.params.length > 0) {
-        document.getElementById('shader-reset-button').style.display = 'block';
+    if (param.paramType === ParamTypes.BOOLEAN) {
+        createToggleSwitch(param, div);
+    } else if (isRangeParameter(param)) {
+        createRangeSlider(param, div);
     } else {
-        document.getElementById('shader-reset-button').style.display = 'none';
+        createNumberInput(param, div);
     }
+
+    // Add parameter description if available
+    if (param.description) {
+        const description = document.createElement('div');
+        description.classList.add('param-description');
+        description.textContent = param.description;
+        div.appendChild(description);
+    }
+
+    container.appendChild(div);
+}
+
+// Creates a toggle switch for boolean parameters
+function createToggleSwitch(param, container) {
+    // Create container
+    const switchContainer = document.createElement('div');
+    switchContainer.className = 'switch-container';
+
+    // Create label
+    const label = document.createElement('label');
+    label.setAttribute('for', `param-${param.name}`);
+    label.textContent = formatParameterName(param.name);
+
+    // Create switch
+    const switchLabel = document.createElement('label');
+    switchLabel.className = 'switch';
+
+    // Create input
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.id = `param-${param.name}`;
+    input.checked = param.defaultValue === true;
+
+    // Create slider
+    const slider = document.createElement('span');
+    slider.className = 'slider';
+
+    // Assemble the toggle switch
+    switchLabel.appendChild(input);
+    switchLabel.appendChild(slider);
+    switchContainer.appendChild(label);
+    switchContainer.appendChild(switchLabel);
+
+    container.appendChild(switchContainer);
+}
+
+// Creates a range slider with value display
+function createRangeSlider(param, container) {
+    // Create label
+    const label = document.createElement('label');
+    label.setAttribute('for', `param-${param.name}`);
+    label.textContent = formatParameterName(param.name);
+
+    // Create value display
+    const valueDisplay = document.createElement('span');
+    valueDisplay.classList.add('value-display');
+    valueDisplay.textContent = formatValue(param.defaultValue, param);
+    label.appendChild(valueDisplay);
+
+    // Create slider
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.id = `param-${param.name}`;
+
+    // Set min, max, and step attributes
+    setRangeAttributes(input, param);
+
+    // Set value after min/max/step to avoid browser rounding issues
+    input.value = param.defaultValue.toString();
+
+    // Update value display when slider changes
+    input.addEventListener('input', () => {
+        valueDisplay.textContent = formatValue(input.value, param);
+    });
+
+    container.appendChild(label);
+    container.appendChild(input);
+}
+
+// Creates a number input for numeric parameters
+function createNumberInput(param, container) {
+    // Create label
+    const label = document.createElement('label');
+    label.setAttribute('for', `param-${param.name}`);
+    label.textContent = formatParameterName(param.name);
+
+    // Create input
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = `param-${param.name}`;
+
+    if (param.min !== null) input.min = param.min;
+    if (param.max !== null) input.max = param.max;
+    if (param.step !== null) input.step = param.step;
+
+    input.value = param.defaultValue.toString();
+
+    container.appendChild(label);
+    container.appendChild(input);
+}
+
+// Sets attributes for range inputs based on parameter type
+function setRangeAttributes(input, param) {
+    // Set min and max values
+    if (param.min !== null) input.min = param.min;
+    if (param.max !== null) input.max = param.max;
+
+    // Set step value
+    if (param.step !== null) {
+        input.step = param.step;
+    } else if (param.paramType === ParamTypes.INTEGER) {
+        input.step = 1;
+    } else if (param.paramType === ParamTypes.PERCENT) {
+        input.step = 0.05;
+    }
+
+    // Set default min/max for specific parameter types
+    if (param.paramType === ParamTypes.PERCENT) {
+        if (param.min === null) input.min = 0;
+        if (param.max === null) input.max = 1;
+    } else if (param.paramType === ParamTypes.ANGLE) {
+        if (param.min === null) input.min = 0;
+        if (param.max === null) input.max = 2 * Math.PI;
+    }
+}
+
+// Formats a parameter value for display based on its type
+function formatValue(value, param) {
+    if (param.paramType === ParamTypes.ANGLE) {
+        // Round to nearest 0.5 degrees
+        return Math.round(value * (180 / Math.PI) * 2) / 2 + '°';
+    } else if (param.step === 1 || param.paramType === ParamTypes.INTEGER) {
+        return parseInt(value);
+    } else if (param.paramType === ParamTypes.PERCENT) {
+        // Round to nearest 0.5%
+        return Math.round(parseFloat(value) * 200) / 2 + '%';
+    } else {
+        return parseFloat(value).toFixed(2);
+    }
+}
+
+// Formats a parameter name for display
+function formatParameterName(name) {
+    return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Determines if a parameter should use a range slider
+function isRangeParameter(param) {
+    return (param.min !== null && param.max !== null) ||
+        param.paramType === ParamTypes.PERCENT ||
+        param.paramType === ParamTypes.ANGLE;
 }
 
 function resetShaderParameters() {
