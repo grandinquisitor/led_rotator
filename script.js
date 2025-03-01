@@ -2042,23 +2042,33 @@ function isRangeParameter(param) {
         param.paramType === ParamTypes.ANGLE;
 }
 
-function resetShaderParameters() {
-    const shaderName = document.getElementById('shader-select').value;
-    const shader = shaderRegistry[shaderName];
-
-    if (!shader || !shader.params || shader.params.length === 0) {
+function resetParameters(params, idPrefix, showNotification = true) {
+    if (!params || params.length === 0) {
         return; // No parameters to reset
     }
 
     // Reset each parameter to its default value
-    shader.params.forEach(param => {
-        const inputElem = document.getElementById(`param-${param.name}`);
+    params.forEach(param => {
+        const inputElem = document.getElementById(`${idPrefix}${param.name}`);
         if (!inputElem) return;
 
         if (param.paramType === ParamTypes.BOOLEAN) {
             inputElem.checked = param.defaultValue === true;
             // Trigger a change event for checkboxes
             inputElem.dispatchEvent(new Event('change'));
+        } else if (param.paramType === ParamTypes.COORDINATE) {
+            // For coordinate parameters, we need to reset both X and Y inputs
+            const xInput = document.getElementById(`${idPrefix}${param.name}-x`);
+            const yInput = document.getElementById(`${idPrefix}${param.name}-y`);
+
+            if (xInput && yInput) {
+                xInput.value = param.defaultValue.x.toString();
+                yInput.value = param.defaultValue.y.toString();
+
+                // Trigger change events
+                xInput.dispatchEvent(new Event('change'));
+                yInput.dispatchEvent(new Event('change'));
+            }
         } else {
             inputElem.value = param.defaultValue.toString();
             // Trigger the appropriate event to update any UI elements (like value displays)
@@ -2067,11 +2077,34 @@ function resetShaderParameters() {
         }
     });
 
-    // Update visualization and save state
+    // Update visualization
     updateVisualization();
 
-    // Show notification
-    showNotification('Parameters reset to default values', false, 'success');
+    // Show notification if requested
+    if (showNotification) {
+        window.showNotification('Parameters reset to default values', false, 'success');
+    }
+}
+
+// Reset shader parameters
+function resetShaderParameters() {
+    const shaderName = document.getElementById('shader-select').value;
+    const shader = shaderRegistry[shaderName];
+
+    if (!shader || !shader.params) {
+        return; // No shader or parameters to reset
+    }
+
+    resetParameters(shader.params, 'param-');
+}
+
+// Reset global parameters
+function resetGlobalParameters(showNotification = true) {
+    if (!globalParams) {
+        return; // No global parameters defined
+    }
+
+    resetParameters(globalParams, 'global-param-', showNotification);
 }
 
 let g_cachedAngles = [];
