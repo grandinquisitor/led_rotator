@@ -2817,7 +2817,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up shader select change handler
     document.getElementById('shader-select').addEventListener('change', () => {
         populateShaderParams();
-        resetGlobalParameters(false);
+        // preserve globals
+        // resetGlobalParameters(false);
     });
 
     // Listen for input and change events on the sidebar that contains all controls
