@@ -253,29 +253,9 @@ function saveAppearanceSettings() {
 // Function to save the current shader state to localStorage
 function saveShaderStateToLocalStorage() {
     try {
-        // Create a state object with only the necessary parts
-        const state = {
-            version: 1,
-            shaderName: document.getElementById('shader-select').value,
-            shaderParams: {},
-            globalOptions: {
-                customCenter: g_customCenter || null,
-            }
-        };
-
-        // Serialize shader parameters
-        const shader = shaderRegistry[state.shaderName];
-        if (shader && shader.params) {
-            shader.params.forEach(param => {
-                const inputElem = document.getElementById(`param-${param.name}`);
-                if (param.paramType === ParamTypes.BOOLEAN) {
-                    state.shaderParams[param.name] = inputElem?.checked || false;
-                } else {
-                    state.shaderParams[param.name] = parseFloat(inputElem?.value) || param.defaultValue;
-                }
-            });
-        }
-
+        // Create a state object
+        const state = serializeState(false); // Don't include data to keep localStorage size reasonable
+        
         // Save to localStorage
         localStorage.setItem(STORAGE_KEYS.SHADER_STATE, JSON.stringify(state));
     } catch (e) {
@@ -294,11 +274,7 @@ function loadShaderStateFromLocalStorage() {
         const state = JSON.parse(stateJson);
         const result = deserializeState(state);
 
-        // Update the centroid UI to reflect any loaded custom centroid
-        updateCentroidStatus();
-
         return result;
-
     } catch (e) {
         console.error('Error loading shader state:', e);
         return false;
@@ -2146,152 +2122,9 @@ function getGlobalParamValues() {
     return globalParamValues;
 }
 
-// Modify the crosshair mode to update custom coordinates
-let g_customCenter = null; // TODO: delete
-let g_crosshairMode = false; // TODO: delete
-
 let g_coordinatePickingMode = false;
 let g_currentPickingParam = null;
 let g_currentPickingPrefix = null;
-
-
-function initCentroidUI() {
-    const canvas = document.getElementById('canvas');
-    const setCenterBtn = document.getElementById('set-center-btn');
-    const resetCenterBtn = document.getElementById('reset-center-btn');
-
-    // Update UI to reflect current centroid status
-    updateCentroidStatus();
-
-    // Button click handler to activate crosshair mode
-    setCenterBtn.addEventListener('click', () => {
-        g_crosshairMode = true;
-        canvas.style.cursor = 'crosshair';
-        setCenterBtn.disabled = true;
-
-        // Show notification
-        showNotification('Click on the canvas to set center point, or press Esc to cancel', false, 'info');
-
-        document.getElementById('centroid-status-instructions').style.display = 'block';
-        document.getElementById('default-centroid-status').style.display = 'none';
-        document.getElementById('custom-centroid-status').style.display = 'none';
-    });
-
-    // Canvas click handler to set the center point
-    canvas.addEventListener('click', (e) => {
-        if (!g_crosshairMode) return;
-
-        // Get canvas position and dimensions
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        // Calculate clicked position in canvas coordinates
-        const canvasX = (e.clientX - rect.left) * scaleX;
-        const canvasY = (e.clientY - rect.top) * scaleY;
-
-        // Calculate bounds and scale exactly as visualize does
-        const pointsForBounds = points.map(([label, x, y]) => [label, x, y]);
-        const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
-        const boundsWidth = maxX - minX;
-        const boundsHeight = maxY - minY;
-        const boundsMiddleX = minX + boundsWidth / 2;
-        const boundsMiddleY = minY + boundsHeight / 2;
-
-        // Calculate the same scale factor that visualize uses
-        const xScale = (canvas.width - 80) / (boundsWidth || 1);
-        const yScale = (canvas.height - 80) / (boundsHeight || 1);
-        const scale = 10;
-        const dynamicScale = Math.min(xScale, yScale, scale);
-        const finalScale = dynamicScale > scale ? scale : dynamicScale;
-
-        // Transform canvas coordinates to centered, y-flipped system
-        const centeredX = canvasX - canvas.width / 2;
-        const centeredY = canvas.height / 2 - canvasY;
-
-        // Convert to internal mm coordinates
-        const mmX = centeredX / finalScale + boundsMiddleX;
-        const mmY = centeredY / finalScale + boundsMiddleY;
-
-        // Calculate a threshold based on the LED package size
-        // Using the diagonal of the LED as the threshold, with a small multiplier
-        const ledPackage = document.getElementById('led-package').value;
-        const [ledWidth, ledHeight] = getLedSize(ledPackage, Units.MM);
-        const clickThreshold = Math.sqrt(ledWidth * ledWidth + ledHeight * ledHeight) * 0.75;
-
-        let closestLED = null;
-        let minDistance = Infinity;
-
-        // Find the closest LED to the click point
-        for (const [label, ledX, ledY] of points) {
-            const distance = Math.hypot(ledX - mmX, ledY - mmY);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestLED = [label, ledX, ledY];
-            }
-        }
-
-        if (minDistance < clickThreshold && closestLED) {
-            // If we found a close LED, use its coordinates
-            g_customCenter = { x: closestLED[1], y: closestLED[2] };
-            showNotification(`Centroid override set to LED '${closestLED[0]}'`, false, 'success');
-        } else {
-            // Use the exact coordinates
-            g_customCenter = { x: mmX, y: mmY };
-            showNotification(`Centroid override set to X: ${g_customCenter.x.toFixed(2)}, Y: ${g_customCenter.y.toFixed(2)}`, false, 'success');
-        }
-
-        // Update UI to reflect new centroid status
-        updateCentroidStatus();
-
-        // Update visualization
-        updateVisualization();
-
-        // Reset crosshair mode
-        exitCrosshairMode();
-    });
-
-    // Reset center button handler
-    resetCenterBtn.addEventListener('click', () => {
-        g_customCenter = null;
-        showNotification('Using natural centroid', false, 'success');
-        updateCentroidStatus();
-        updateVisualization();
-    });
-}
-
-// Helper function to exit crosshair mode
-function exitCrosshairMode() {
-    g_crosshairMode = false;
-    document.getElementById('set-center-btn').disabled = false;
-    document.getElementById('canvas').style.cursor = 'default';
-    document.getElementById('centroid-status-instructions').style.display = 'none';
-    updateCentroidStatus();
-}
-
-function updateCentroidStatus() {
-    const resetCenterBtn = document.getElementById('reset-center-btn');
-    const defaultStatus = document.getElementById('default-centroid-status');
-    const customStatus = document.getElementById('custom-centroid-status');
-
-    // Update reset button state
-    resetCenterBtn.disabled = g_customCenter === null;
-
-    // Update status indicator
-    if (g_customCenter) {
-        // Update coordinate values
-        document.getElementById('custom-center-x').textContent = g_customCenter.x.toFixed(2);
-        document.getElementById('custom-center-y').textContent = g_customCenter.y.toFixed(2);
-
-        // Show custom status, hide default status
-        defaultStatus.style.display = 'none';
-        customStatus.style.display = 'block';
-    } else {
-        // Show default status, hide custom status
-        defaultStatus.style.display = 'block';
-        customStatus.style.display = 'none';
-    }
-}
 
 // In document ready or initialization function
 function initPickerFunctionality() {
@@ -2299,9 +2132,7 @@ function initPickerFunctionality() {
 
     // Canvas click handler
     canvas.addEventListener('click', (e) => {
-        if (g_crosshairMode) {
-            return;
-        } else if (g_coordinatePickingMode) {
+        if (g_coordinatePickingMode) {
             handleCoordinatePickingClick(e);
         }
     });
@@ -2311,7 +2142,7 @@ function activateCoordinatePicker(paramName, idPrefix = 'param-') {
     const canvas = document.getElementById('canvas');
 
     // Exit if already in any picking mode
-    if (g_coordinatePickingMode || g_crosshairMode) {
+    if (g_coordinatePickingMode) {
         exitCoordinatePicker();
         return;
     }
@@ -2538,10 +2369,7 @@ function serializeState(include_data) {
         version: 1,
         shaderName: shaderName,
         shaderParams: {},
-        globalOptions: {
-            customCenter: g_customCenter || null,
-        },
-        // Points are already stored in localStorage, but include them for completeness
+        globalParams: {},
     };
 
     if (include_data) {
@@ -2556,16 +2384,40 @@ function serializeState(include_data) {
     // Add all shader parameters
     if (shader && shader.params) {
         shader.params.forEach(param => {
-            const inputElem = document.getElementById(`param-${param.name}`);
-            if (param.paramType === ParamTypes.BOOLEAN) {
-                state.shaderParams[param.name] = inputElem?.checked || false;
-            } else {
-                state.shaderParams[param.name] = parseFloat(inputElem?.value) || param.defaultValue;
-            }
+            serializeParameter(param, 'param-', state.shaderParams);
+        });
+    }
+
+    // Add all global parameters
+    if (globalParams) {
+        globalParams.forEach(param => {
+            serializeParameter(param, 'global-param-', state.globalParams);
         });
     }
 
     return state;
+}
+
+function serializeParameter(param, idPrefix, targetObj) {
+    if (param.paramType === ParamTypes.BOOLEAN) {
+        const inputElem = document.getElementById(`${idPrefix}${param.name}`);
+        targetObj[param.name] = inputElem?.checked || false;
+    } else if (param.paramType === ParamTypes.COORDINATE) {
+        const xInput = document.getElementById(`${idPrefix}${param.name}-x`);
+        const yInput = document.getElementById(`${idPrefix}${param.name}-y`);
+        
+        if (xInput && yInput && !isNaN(parseFloat(xInput.value)) && !isNaN(parseFloat(yInput.value))) {
+            targetObj[param.name] = {
+                x: parseFloat(xInput.value),
+                y: parseFloat(yInput.value)
+            };
+        } else {
+            targetObj[param.name] = param.defaultValue;
+        }
+    } else {
+        const inputElem = document.getElementById(`${idPrefix}${param.name}`);
+        targetObj[param.name] = parseFloat(inputElem?.value) || param.defaultValue;
+    }
 }
 
 function deserializeState(state) {
@@ -2594,31 +2446,16 @@ function deserializeState(state) {
             const shader = shaderRegistry[state.shaderName];
             if (shader && shader.params) {
                 shader.params.forEach(param => {
-                    if (state.shaderParams.hasOwnProperty(param.name)) {
-                        const inputElem = document.getElementById(`param-${param.name}`);
-                        if (inputElem) {
-                            if (param.paramType === ParamTypes.BOOLEAN) {
-                                inputElem.checked = Boolean(state.shaderParams[param.name]);
-                            } else {
-                                inputElem.value = state.shaderParams[param.name];
-                            }
-
-                            // Trigger appropriate event for the input
-                            // This will update any UI elements like value displays
-                            const eventType = inputElem.type === 'range' ? 'input' : 'change';
-                            inputElem.dispatchEvent(new Event(eventType));
-                        }
-                    }
+                    deserializeParameter(param, state.shaderParams, 'param-');
                 });
             }
         }
 
-        // Set global options
-        if (state.globalOptions) {
-            // Restore custom center if it exists
-            if (state.globalOptions.customCenter) {
-                g_customCenter = state.globalOptions.customCenter;
-            }
+        // Set global parameters
+        if (state.globalParams && globalParams) {
+            globalParams.forEach(param => {
+                deserializeParameter(param, state.globalParams, 'global-param-');
+            });
         }
 
         // Restore points if included
@@ -2627,6 +2464,7 @@ function deserializeState(state) {
             savePointsToCSV();
         }
 
+        // Restore display options
         if (state.displayOptions) {
             if (state.displayOptions.ledPackage) {
                 document.getElementById('led-package').value = state.displayOptions.ledPackage;
@@ -2645,6 +2483,38 @@ function deserializeState(state) {
     } catch (error) {
         console.error('Error restoring state:', error);
         return false;
+    }
+}
+
+function deserializeParameter(param, paramsObj, idPrefix) {
+    if (!paramsObj.hasOwnProperty(param.name)) return;
+    
+    if (param.paramType === ParamTypes.BOOLEAN) {
+        const inputElem = document.getElementById(`${idPrefix}${param.name}`);
+        if (inputElem) {
+            inputElem.checked = Boolean(paramsObj[param.name]);
+            inputElem.dispatchEvent(new Event('change'));
+        }
+    } else if (param.paramType === ParamTypes.COORDINATE) {
+        const xInput = document.getElementById(`${idPrefix}${param.name}-x`);
+        const yInput = document.getElementById(`${idPrefix}${param.name}-y`);
+        
+        if (xInput && yInput && paramsObj[param.name]) {
+            xInput.value = paramsObj[param.name].x;
+            yInput.value = paramsObj[param.name].y;
+            
+            xInput.dispatchEvent(new Event('change'));
+            yInput.dispatchEvent(new Event('change'));
+        }
+    } else {
+        const inputElem = document.getElementById(`${idPrefix}${param.name}`);
+        if (inputElem) {
+            inputElem.value = paramsObj[param.name];
+            
+            // Trigger appropriate event for the input
+            const eventType = inputElem.type === 'range' ? 'input' : 'change';
+            inputElem.dispatchEvent(new Event(eventType));
+        }
     }
 }
 
@@ -2909,10 +2779,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Escape key to cancel crosshair mode
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (g_crosshairMode) {
-                exitCrosshairMode();
-                showNotification('Center selection cancelled', false, 'info');
-            } else if (g_coordinatePickingMode) {
+            if (g_coordinatePickingMode) {
                 exitCoordinatePicker();
                 showNotification('Coordinate selection cancelled', false, 'info');
             } else if (document.getElementById('export-modal').style.display !== 'none') {
@@ -2931,7 +2798,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populateGlobalParams();
 
     if (!loadStateFromUrl()) {
-        // loadShaderStateFromLocalStorage();
+        loadShaderStateFromLocalStorage();
     }
 
     updateVisualization();
