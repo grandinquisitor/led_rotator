@@ -512,11 +512,12 @@ registerShader(
             { min: 0, max: null, step: 0.1 }),
         p('phase_shift', ParamTypes.ANGLE, Math.PI / 2,
             "Fixed angular offset applied when a pulse occurs, shifting the rotation.",
-            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 })
+            { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
+        p('counter_rotate', ParamTypes.BOOLEAN, false, "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
     (args, params) => {
         const pulse = Math.floor(args.radius * params.pulse_count / params.scaling);
-        return args.radial_angle + (pulse % 2) * params.phase_shift;
+        return (params.counter_rotate ? -1 : 1) * args.radial_angle + (pulse % 2) * params.phase_shift;
     });
 
 registerShader(
@@ -714,10 +715,11 @@ registerShader("polar_gradient", "Creates a gradient rotation pattern by blendin
         p('angular_offset', ParamTypes.ANGLE, 0, "Fixed angular offset applied to all LEDs.",
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
         p('radial_intensity', ParamTypes.PERCENT, 0, "How strongly distance from center influences rotation angle."),
-        p('center_weighted', ParamTypes.BOOLEAN, false, "When enabled, LEDs closer to center receive stronger effect.")
+        p('center_weighted', ParamTypes.BOOLEAN, false, "When enabled, LEDs closer to center receive stronger effect."),
+        p('counter_rotate', ParamTypes.BOOLEAN, false, "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
     (args, params) =>
-        args.radial_angle + params.angular_offset + (2 * Math.PI * (params.center_weighted ? 1 - args.radius : args.radius) * params.radial_intensity)
+        (params.counter_rotate ? -1 : 1) * args.radial_angle + params.angular_offset + (2 * Math.PI * (params.center_weighted ? 1 - args.radius : args.radius) * params.radial_intensity)
 );
 
 // Flower Pattern: Creates a petal-like pattern using sinusoidal modulation.
@@ -893,10 +895,11 @@ registerShader(
     [
         p('growth_rate', ParamTypes.NUMBER, 0.2,
             "Controls how tightly the spiral winds (larger values create tighter spirals).",
-            { min: 0.1, max: 8, step: 0.1 })
+            { min: 0.1, max: 8, step: 0.1 }),
+        p('counter_rotate', ParamTypes.BOOLEAN, false, "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
     (args, params) =>
-        args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
+        (params.counter_rotate ? -1 : 1) * args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
 );
 
 registerShader(
