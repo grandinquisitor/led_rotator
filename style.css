@@ -117,6 +117,27 @@ input[type="range"] {
     margin-top: 20px;
 }
 
+.coordinate-container {
+    display: flex;
+    gap: 10px;
+}
+
+.coordinate-input-group {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.coordinate-label {
+    width: 20px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.coordinate-input-group input {
+    flex: 1;
+}
+
 button {
     padding: 8px 16px;
     background-color: var(--primary-color);

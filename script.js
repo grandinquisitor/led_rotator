@@ -353,6 +353,8 @@ const ParamTypes = Object.freeze({
     PERCENT: new ParamType('PERCENT', 0, 'number', v => v >= 0 && v <= 1),
     ANGLE: new ParamType('ANGLE', 0, 'number', v => v >= 0 && v <= 2 * Math.PI),
     BOOLEAN: new ParamType('BOOLEAN', 0, 'boolean', value => typeof value === 'boolean'),
+    COORDINATE: new ParamType('COORDINATE', {x: 0, y: 0}, 'object', v => 
+        typeof v === 'object' && v !== null && typeof v.x === 'number' && typeof v.y === 'number')
 });
 
 class Param {
@@ -913,17 +915,11 @@ registerShader(
     "wave_interference",
     "Simulates the interference pattern of multiple waves emanating from different points.",
     [
-        p('source1_x', ParamTypes.NUMBER, 0.3,
-            "X-coordinate of the first wave source (-1 to 1).",
+        p('source1', ParamTypes.COORDINATE, {x: 0.3, y: 0.3},
+            "Position of the first wave source (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
-        p('source1_y', ParamTypes.NUMBER, 0.3,
-            "Y-coordinate of the first wave source (-1 to 1).",
-            { min: -1, max: 1, step: 0.05 }),
-        p('source2_x', ParamTypes.NUMBER, -0.3,
-            "X-coordinate of the second wave source (-1 to 1).",
-            { min: -1, max: 1, step: 0.05 }),
-        p('source2_y', ParamTypes.NUMBER, -0.3,
-            "Y-coordinate of the second wave source (-1 to 1).",
+        p('source2', ParamTypes.COORDINATE, {x: -0.3, y: -0.3},
+            "Position of the second wave source (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
         p('frequency', ParamTypes.NUMBER, 2,
             "Wave frequency parameter.",
@@ -932,12 +928,12 @@ registerShader(
     (args, params) => {
         // Calculate distances from wave sources
         const dist1 = Math.sqrt(
-            Math.pow(args.dx - params.source1_x, 2) +
-            Math.pow(args.dy - params.source1_y, 2)
+            Math.pow(args.dx - params.source1.x, 2) +
+            Math.pow(args.dy - params.source1.y, 2)
         );
         const dist2 = Math.sqrt(
-            Math.pow(args.dx - params.source2_x, 2) +
-            Math.pow(args.dy - params.source2_y, 2)
+            Math.pow(args.dx - params.source2.x, 2) +
+            Math.pow(args.dy - params.source2.y, 2)
         );
 
         // Calculate wave phase based on distances
@@ -972,20 +968,14 @@ registerShader(
     "electric_field",
     "Simulates an electric field with multiple point charges.",
     [
-        p('charge1_x', ParamTypes.NUMBER, 0.3,
-            "X-coordinate of the first charge (-1 to 1).",
-            { min: -1, max: 1, step: 0.05 }),
-        p('charge1_y', ParamTypes.NUMBER, 0.3,
-            "Y-coordinate of the first charge (-1 to 1).",
+      p('charge1', ParamTypes.COORDINATE, {x: 0.3, y: 0.3},
+            "Position of the first charge (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
         p('charge1_value', ParamTypes.NUMBER, 1,
             "Value of the first charge (positive or negative).",
             { min: -3, max: 3, step: 0.1 }),
-        p('charge2_x', ParamTypes.NUMBER, -0.3,
-            "X-coordinate of the second charge (-1 to 1).",
-            { min: -1, max: 1, step: 0.05 }),
-        p('charge2_y', ParamTypes.NUMBER, -0.3,
-            "Y-coordinate of the second charge (-1 to 1).",
+        p('charge2', ParamTypes.COORDINATE, {x: -0.3, y: -0.3},
+            "Position of the second charge (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
         p('charge2_value', ParamTypes.NUMBER, -1,
             "Value of the second charge (positive or negative).",
@@ -993,10 +983,10 @@ registerShader(
     ],
     (args, params) => {
         // Convert normalized coordinates to actual positions
-        const c1x = params.charge1_x;
-        const c1y = params.charge1_y;
-        const c2x = params.charge2_x;
-        const c2y = params.charge2_y;
+        const c1x = params.charge1.x;
+        const c1y = params.charge1.y;
+        const c2x = params.charge2.x;
+        const c2y = params.charge2.y;
 
         // Calculate vector components from each charge
         const r1sq = Math.pow(args.dx - c1x, 2) + Math.pow(args.dy - c1y, 2) + 0.01;
@@ -1778,6 +1768,8 @@ function createParameterControl(param, container) {
 
     if (param.paramType === ParamTypes.BOOLEAN) {
         createToggleSwitch(param, div);
+    } else if (param.paramType === ParamTypes.COORDINATE) {
+        createCoordinateInput(param, div);
     } else if (isRangeParameter(param)) {
         createRangeSlider(param, div);
     } else {
@@ -1884,6 +1876,59 @@ function createNumberInput(param, container) {
     container.appendChild(input);
 }
 
+// Create a new function to handle coordinate input UI
+function createCoordinateInput(param, container) {
+    // Create label
+    const label = document.createElement('label');
+    label.textContent = formatParameterName(param.name);
+    container.appendChild(label);
+
+    // Create coordinate container
+    const coordContainer = document.createElement('div');
+    coordContainer.classList.add('coordinate-container');
+    
+    // Create X input group
+    const xGroup = document.createElement('div');
+    xGroup.classList.add('coordinate-input-group');
+    
+    const xLabel = document.createElement('span');
+    xLabel.textContent = 'X:';
+    xLabel.classList.add('coordinate-label');
+    xGroup.appendChild(xLabel);
+    
+    const xInput = document.createElement('input');
+    xInput.type = 'number';
+    xInput.id = `param-${param.name}-x`;
+    xInput.value = param.defaultValue.x.toString();
+    xInput.step = param.step || 0.1;
+    if (param.min !== null) xInput.min = param.min;
+    if (param.max !== null) xInput.max = param.max;
+    xGroup.appendChild(xInput);
+    
+    // Create Y input group
+    const yGroup = document.createElement('div');
+    yGroup.classList.add('coordinate-input-group');
+    
+    const yLabel = document.createElement('span');
+    yLabel.textContent = 'Y:';
+    yLabel.classList.add('coordinate-label');
+    yGroup.appendChild(yLabel);
+    
+    const yInput = document.createElement('input');
+    yInput.type = 'number';
+    yInput.id = `param-${param.name}-y`;
+    yInput.value = param.defaultValue.y.toString();
+    yInput.step = param.step || 0.1;
+    if (param.min !== null) yInput.min = param.min;
+    if (param.max !== null) yInput.max = param.max;
+    yGroup.appendChild(yInput);
+    
+    // Add input groups to container
+    coordContainer.appendChild(xGroup);
+    coordContainer.appendChild(yGroup);
+    container.appendChild(coordContainer);
+}
+
 // Sets attributes for range inputs based on parameter type
 function setRangeAttributes(input, param) {
     // Set min and max values
@@ -1978,14 +2023,19 @@ function updateVisualization() {
     const shaderParams = {};
     if (shader.params) {
         shader.params.forEach(param => {
-            const input = document.getElementById(`param-${param.name}`);
-
             if (param.paramType === ParamTypes.BOOLEAN) {
+                const input = document.getElementById(`param-${param.name}`);
                 shaderParams[param.name] = input?.checked || param.defaultValue;
+            } else if (param.paramType === ParamTypes.COORDINATE) {
+                const xInput = document.getElementById(`param-${param.name}-x`);
+                const yInput = document.getElementById(`param-${param.name}-y`);
+                shaderParams[param.name] = {
+                    x: parseFloat(xInput?.value) || param.defaultValue.x,
+                    y: parseFloat(yInput?.value) || param.defaultValue.y
+                };
             } else {
-                shaderParams[param.name] = (input?.value !== undefined && input?.value !== '')
-                    ? parseFloat(input.value)
-                    : param.defaultValue;
+                const input = document.getElementById(`param-${param.name}`);
+                shaderParams[param.name] = parseFloat(input?.value) || param.defaultValue;
             }
         });
     }
