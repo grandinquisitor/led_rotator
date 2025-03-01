@@ -1335,6 +1335,190 @@ registerShader(
     (args, params) => args.radial_angle % (2 * Math.PI / params.symmetry_count)
 );
 
+
+// Vector Field Flow Shader
+registerShader(
+    "vector_field_flow",
+    "Simulates fluid dynamics with rotating vector fields.",
+    [
+        p('flow_speed', ParamTypes.NUMBER, 2.0,
+            "Speed of the vector field flow (affects time-like distortion).",
+            { min: 0.1, max: 10, step: 0.1 }),
+        p('vortex_strength', ParamTypes.NUMBER, 0.5,
+            "Strength of vorticity in the flow.",
+            { min: 0, max: 1, step: 0.05 }),
+        p('divergence', ParamTypes.NUMBER, 0.3,
+            "Amount of divergence/convergence in the field.",
+            { min: -1, max: 1, step: 0.05 }),
+        p('vortex_count', ParamTypes.INTEGER, 2,
+            "Number of vortices in the field.",
+            { min: 1, max: 5, step: 1 })
+    ],
+    (args, params) => {
+        // Create a vector field with multiple vortices
+        let vx = 0;
+        let vy = 0;
+
+        // We'll use flow_speed to offset the vortex positions - simulating movement
+        // This creates an effect where increasing flow_speed changes the pattern
+        const timeOffset = params.flow_speed * 0.2;
+
+        // Create multiple vortices
+        for (let i = 0; i < params.vortex_count; i++) {
+            // Position each vortex at different locations
+            const angle = (i * Math.PI * 2 / params.vortex_count) + timeOffset;
+            const distance = 0.4; // Distance from center
+
+            const vortexX = Math.cos(angle) * distance;
+            const vortexY = Math.sin(angle) * distance;
+
+            // Calculate distance from this point to the vortex
+            const dx = args.dx - vortexX;
+            const dy = args.dy - vortexY;
+            const distSquared = dx * dx + dy * dy + 0.01; // Add small value to avoid division by zero
+
+            // Vortex effect is stronger when closer to the vortex
+            const strength = params.vortex_strength / distSquared;
+
+            // Add rotational component from this vortex (perpendicular to radius)
+            vx += -dy * strength;
+            vy += dx * strength;
+
+            // Add divergent/convergent component
+            vx += dx * params.divergence * strength;
+            vy += dy * params.divergence * strength;
+        }
+
+        // Add a base flow direction that changes with flow_speed
+        vx += Math.cos(timeOffset * 3) * 0.2;
+        vy += Math.sin(timeOffset * 2) * 0.2;
+
+        // Return the angle of the resulting vector
+        return Math.atan2(vy, vx);
+    }
+);
+
+// Crystal Structure Shader
+registerShader(
+    "crystal_structure",
+    "Creates patterns inspired by crystallography lattice structures.",
+    [
+        p('lattice_type', ParamTypes.INTEGER, 0,
+            "Crystal lattice type (0=Cubic, 1=Hexagonal, 2=Tetragonal, 3=Diamond).",
+            { min: 0, max: 3, step: 1 }),
+        p('unit_cell_size', ParamTypes.NUMBER, 0.15,
+            "Size of the unit cell in the crystal lattice.",
+            { min: 0.05, max: 0.5, step: 0.01 }),
+        p('orientation', ParamTypes.ANGLE, 0,
+            "Orientation of the crystal lattice.",
+            { min: 0, max: Math.PI, step: Math.PI / 12 }),
+        p('variation', ParamTypes.PERCENT, 0.1,
+            "Amount of random variation in the crystal structure.",
+            { min: 0, max: 0.3, step: 0.01 })
+    ],
+    (args, params) => {
+        // Rotate coordinates to match the crystal orientation
+        const cos_theta = Math.cos(params.orientation);
+        const sin_theta = Math.sin(params.orientation);
+        const x_rot = args.dx * cos_theta - args.dy * sin_theta;
+        const y_rot = args.dx * sin_theta + args.dy * cos_theta;
+
+        // Scale by unit cell size
+        const x_scaled = x_rot / params.unit_cell_size;
+        const y_scaled = y_rot / params.unit_cell_size;
+
+        // Determine which lattice point this coordinate is closest to
+        let lattice_x, lattice_y, distance, angle;
+
+        switch (Math.floor(params.lattice_type)) {
+            case 0: // Cubic
+                // Simple cubic lattice - evenly spaced grid
+                lattice_x = Math.round(x_scaled);
+                lattice_y = Math.round(y_scaled);
+
+                // Calculate distance to nearest lattice point
+                distance = Math.sqrt(Math.pow(x_scaled - lattice_x, 2) +
+                    Math.pow(y_scaled - lattice_y, 2));
+
+                // Create deterministic but seemingly random angle for each lattice point
+                angle = ((lattice_x * 13) ^ (lattice_y * 7)) % 180;
+                angle = (angle / 180) * Math.PI;
+                break;
+
+            case 1: // Hexagonal
+                // Hexagonal lattice
+                // First find the nearest point in a skewed coordinate system
+                const hex_x = Math.round(x_scaled);
+                const hex_y = Math.round(y_scaled - 0.5 * (hex_x % 2));
+
+                // Convert back to original space
+                lattice_x = hex_x;
+                lattice_y = hex_y + 0.5 * (hex_x % 2);
+
+                // Calculate distance to nearest lattice point
+                distance = Math.sqrt(Math.pow(x_scaled - lattice_x, 2) +
+                    Math.pow(y_scaled - lattice_y, 2));
+
+                // Create deterministic angle
+                angle = ((lattice_x * 17) ^ (lattice_y * 11)) % 120;
+                angle = (angle / 120) * Math.PI;
+                break;
+
+            case 2: // Tetragonal
+                // Rectangular lattice with different x and y spacing
+                lattice_x = Math.round(x_scaled);
+                lattice_y = Math.round(y_scaled * 0.5) * 2; // Double the y-spacing
+
+                distance = Math.sqrt(Math.pow(x_scaled - lattice_x, 2) +
+                    Math.pow(y_scaled - lattice_y * 0.5, 2));
+
+                angle = ((lattice_x * 19) ^ (lattice_y * 23)) % 90;
+                angle = (angle / 90) * Math.PI;
+                break;
+
+            case 3: // Diamond
+                // Diamond has two interlaced cubic lattices
+                const x1 = Math.round(x_scaled);
+                const y1 = Math.round(y_scaled);
+                const dist1 = Math.sqrt(Math.pow(x_scaled - x1, 2) + Math.pow(y_scaled - y1, 2));
+
+                const x2 = Math.round(x_scaled - 0.5);
+                const y2 = Math.round(y_scaled - 0.5);
+                const dist2 = Math.sqrt(Math.pow(x_scaled - (x2 + 0.5), 2) +
+                    Math.pow(y_scaled - (y2 + 0.5), 2));
+
+                if (dist1 <= dist2) {
+                    lattice_x = x1;
+                    lattice_y = y1;
+                    distance = dist1;
+                } else {
+                    lattice_x = x2 + 0.5;
+                    lattice_y = y2 + 0.5;
+                    distance = dist2;
+                }
+
+                angle = ((Math.round(lattice_x * 100) * 31) ^ (Math.round(lattice_y * 100) * 37)) % 60;
+                angle = (angle / 60) * Math.PI;
+                break;
+
+            default:
+                return args.radial_angle;
+        }
+
+        // Add variation if enabled
+        if (params.variation > 0) {
+            // Create a pseudo-random value based on lattice coordinates
+            const seed = (lattice_x * 12345 + lattice_y * 67890) & 0xFFFF;
+            const variation = ((seed * 1013904223) & 0xFFFF) / 0xFFFF;
+
+            // Scale by the variation parameter
+            angle += (variation - 0.5) * params.variation * Math.PI;
+        }
+
+        return angle;
+    }
+);
+
 // #region computation/rendering
 
 // Compute the centroid of the points.
