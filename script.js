@@ -2094,7 +2094,7 @@ function serializeStateToUrl(include_data) {
         // Use JSONCrush to compress the data when include_data is true
         const compressedState = JSONCrush.crush(stateJson);
         url.searchParams.set('restore_state', compressedState);
-        url.searchParams.set('compress', 'jsoncrush');
+        url.searchParams.set('z', 'jc');
     } else {
         // Standard URL encoding for smaller states
         url.searchParams.set('restore_state', encodeURIComponent(stateJson));
@@ -2138,7 +2138,7 @@ function copyStateUrl(include_data) {
 function loadStateFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const stateParam = urlParams.get('restore_state');
-    const compressionType = urlParams.get('compress');
+    const compressionType = urlParams.get('z');
 
     if (!stateParam) {
         return false;
@@ -2147,7 +2147,7 @@ function loadStateFromUrl() {
     try {
         let urlState;
 
-        if (compressionType === 'jsoncrush') {
+        if (compressionType === 'jc') {
             if (typeof JSONCrush === "undefined") {
                 throw new Error('JSONCrush library not available');
             }
@@ -2169,7 +2169,7 @@ function loadStateFromUrl() {
             // This prevents accidental reloads from re-applying the state
             const url = new URL(window.location.href);
             url.searchParams.delete('restore_state');
-            url.searchParams.delete('compress');
+            url.searchParams.delete('z');
             window.history.replaceState({}, document.title, url.toString());
 
             return true;
