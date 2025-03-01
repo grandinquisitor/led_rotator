@@ -255,7 +255,7 @@ function saveShaderStateToLocalStorage() {
     try {
         // Create a state object
         const state = serializeState(false); // Don't include data to keep localStorage size reasonable
-        
+
         // Save to localStorage
         localStorage.setItem(STORAGE_KEYS.SHADER_STATE, JSON.stringify(state));
     } catch (e) {
@@ -1952,10 +1952,13 @@ function createCoordinateInput(param, container, idPrefix = 'param-') {
     if (param.max !== null) yInput.max = param.max;
     yGroup.appendChild(yInput);
 
+    // Container for the buttons
+    const buttonGroup = document.createElement('div');
+    buttonGroup.classList.add('coordinate-button-group');
+
     // Crosshair button for picking coordinates on canvas
     const pickButton = document.createElement('button');
-    pickButton.classList.add('coordinate-pick-button');
-    pickButton.innerHTML = '&#x2316;'; // Crosshair symbol
+    pickButton.classList.add('coordinate-button', 'coordinate-pick-button');
     pickButton.title = 'Pick coordinate on canvas';
     pickButton.dataset.paramName = param.name;
     pickButton.dataset.paramPrefix = idPrefix;
@@ -1963,10 +1966,33 @@ function createCoordinateInput(param, container, idPrefix = 'param-') {
         activateCoordinatePicker(param.name, idPrefix);
     });
 
+    // Reset button to restore default values
+    const resetButton = document.createElement('button');
+    resetButton.classList.add('coordinate-button', 'coordinate-reset-button');
+    resetButton.title = 'Reset to default values';
+    resetButton.dataset.paramName = param.name;
+    resetButton.dataset.paramPrefix = idPrefix;
+    resetButton.addEventListener('click', () => {
+        // Reset to default values
+        xInput.value = param.defaultValue.x.toString();
+        yInput.value = param.defaultValue.y.toString();
+
+        // Trigger change event to update visualization
+        xInput.dispatchEvent(new Event('change'));
+        yInput.dispatchEvent(new Event('change'));
+
+        updateVisualization();
+        showNotification(`Reset ${formatParameterName(param.name)} to default values`, false, 'success');
+    });
+
+    // Add the buttons to the button group
+    buttonGroup.appendChild(resetButton);
+    buttonGroup.appendChild(pickButton);
+
     // Assemble the UI elements
     coordContainer.appendChild(xGroup);
     coordContainer.appendChild(yGroup);
-    coordContainer.appendChild(pickButton);
+    coordContainer.appendChild(buttonGroup);
     container.appendChild(coordContainer);
 }
 
@@ -2246,7 +2272,7 @@ function handleCoordinatePickingClick(e) {
     // Always use normalized coordinates
     const naturalCentroid = computeCentroid(points);
     const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
-    
+
     let coordX, coordY;
     let snappedToLed = false;
 
@@ -2261,7 +2287,7 @@ function handleCoordinatePickingClick(e) {
         coordX = (mmX - naturalCentroid.cx) / maxDimension;
         coordY = (mmY - naturalCentroid.cy) / maxDimension;
     }
-    
+
     // Clamp to -1 to 1 range
     coordX = Math.max(-1, Math.min(1, coordX));
     coordY = Math.max(-1, Math.min(1, coordY));
@@ -2405,7 +2431,7 @@ function serializeParameter(param, idPrefix, targetObj) {
     } else if (param.paramType === ParamTypes.COORDINATE) {
         const xInput = document.getElementById(`${idPrefix}${param.name}-x`);
         const yInput = document.getElementById(`${idPrefix}${param.name}-y`);
-        
+
         if (xInput && yInput && !isNaN(parseFloat(xInput.value)) && !isNaN(parseFloat(yInput.value))) {
             targetObj[param.name] = {
                 x: parseFloat(xInput.value),
@@ -2488,7 +2514,7 @@ function deserializeState(state) {
 
 function deserializeParameter(param, paramsObj, idPrefix) {
     if (!paramsObj.hasOwnProperty(param.name)) return;
-    
+
     if (param.paramType === ParamTypes.BOOLEAN) {
         const inputElem = document.getElementById(`${idPrefix}${param.name}`);
         if (inputElem) {
@@ -2498,11 +2524,11 @@ function deserializeParameter(param, paramsObj, idPrefix) {
     } else if (param.paramType === ParamTypes.COORDINATE) {
         const xInput = document.getElementById(`${idPrefix}${param.name}-x`);
         const yInput = document.getElementById(`${idPrefix}${param.name}-y`);
-        
+
         if (xInput && yInput && paramsObj[param.name]) {
             xInput.value = paramsObj[param.name].x;
             yInput.value = paramsObj[param.name].y;
-            
+
             xInput.dispatchEvent(new Event('change'));
             yInput.dispatchEvent(new Event('change'));
         }
@@ -2510,7 +2536,7 @@ function deserializeParameter(param, paramsObj, idPrefix) {
         const inputElem = document.getElementById(`${idPrefix}${param.name}`);
         if (inputElem) {
             inputElem.value = paramsObj[param.name];
-            
+
             // Trigger appropriate event for the input
             const eventType = inputElem.type === 'range' ? 'input' : 'change';
             inputElem.dispatchEvent(new Event(eventType));

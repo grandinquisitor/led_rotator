@@ -120,27 +120,6 @@ input[type="range"] {
 .coordinate-container {
     display: flex;
     gap: 10px;
-}
-
-.coordinate-input-group {
-    display: flex;
-    align-items: center;
-    flex: 1;
-}
-
-.coordinate-label {
-    width: 20px;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.coordinate-input-group input {
-    flex: 1;
-}
-
-.coordinate-container {
-    display: flex;
-    gap: 10px;
     align-items: center;
 }
 
@@ -160,7 +139,14 @@ input[type="range"] {
     flex: 1;
 }
 
-.coordinate-pick-button {
+/* Style for the button group */
+.coordinate-button-group {
+    display: flex;
+    gap: 4px;
+}
+
+/* Base style for coordinate buttons */
+.coordinate-button {
     width: 30px;
     height: 30px;
     padding: 0;
@@ -171,15 +157,27 @@ input[type="range"] {
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
     border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.coordinate-pick-button:hover {
+.coordinate-button:hover {
     background-color: rgba(52, 152, 219, 0.1);
 }
 
-.coordinate-pick-button:disabled {
+.coordinate-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.coordinate-pick-button::before {
+    content: "\2316";  /* Crosshair symbol ⌖ */
+    font-size: 16px;
+}
+
+.coordinate-reset-button::before {
+    content: "\21BA";  /* Counterclockwise arrow symbol ↺ */
+    font-size: 16px;
 }
 
 button {
