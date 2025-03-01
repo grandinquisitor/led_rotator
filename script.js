@@ -1550,14 +1550,14 @@ function computeCentroid(points, customCenter = null) {
 
 function calculateAngles(points, rotationFormula, globalParams = {}) {
     // Get custom centroid from global parameters
-    const customCenter = globalParams.custom_centroid && 
-        typeof globalParams.custom_centroid.x === 'number' && 
-        typeof globalParams.custom_centroid.y === 'number' ? 
+    const customCenter = globalParams.custom_centroid &&
+        typeof globalParams.custom_centroid.x === 'number' &&
+        typeof globalParams.custom_centroid.y === 'number' ?
         convertNormalizedToAbsolute(globalParams.custom_centroid, points) : null;
-    
+
     // Use the custom center or fall back to natural centroid
     const { cx, cy } = computeCentroid(points, customCenter);
-    
+
     const distances = points.map(([label, x, y]) => Math.hypot(x - cx, y - cy));
     const maxDistance = distances.length ? Math.max(...distances) : 0;
 
@@ -1582,22 +1582,22 @@ function calculateAngles(points, rotationFormula, globalParams = {}) {
             dy: dy / maxDistance,
             label: label
         });
-        
+
         // Apply counter-rotation if enabled
         if (globalParams.counter_rotate) {
             angleRad *= -1;
         }
-        
+
         // Apply fixed offset
         if (globalParams.fixed_offset) {
             angleRad += globalParams.fixed_offset;
         }
-        
+
         // Apply quantization if enabled
         if (globalParams.quantize > 0) {
             angleRad = Math.round(angleRad / globalParams.quantize) * globalParams.quantize;
         }
-        
+
         let angleDeg = (angleRad * 180 / Math.PI) % 360;
         if (angleDeg < 0) angleDeg += 360;
         result.push({ label, x, y, angleDeg });
@@ -1608,13 +1608,13 @@ function calculateAngles(points, rotationFormula, globalParams = {}) {
 // Helper function to convert normalized coordinates to absolute
 function convertNormalizedToAbsolute(normalizedCoord, points) {
     const naturalCentroid = computeCentroid(points);
-    
+
     // Calculate bounds to determine scaling
     const { minX, maxX, minY, maxY } = calculatePointsBounds(points);
     const boundsWidth = maxX - minX;
     const boundsHeight = maxY - minY;
     const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
-    
+
     // Convert normalized coordinates (-1 to 1) to absolute coordinates
     return {
         x: naturalCentroid.cx + (normalizedCoord.x * maxDimension),
@@ -1659,15 +1659,15 @@ function visualize(pointsWithAngles, options = {}) {
 
     // Get custom centroid from options and convert from normalized to absolute if needed
     let customCenter = null;
-    if (options.customCenter && 
-        typeof options.customCenter.x === 'number' && 
+    if (options.customCenter &&
+        typeof options.customCenter.x === 'number' &&
         typeof options.customCenter.y === 'number') {
-        
+
         customCenter = convertNormalizedToAbsolute(options.customCenter, points);
     }
-    
+
     const { cx, cy } = computeCentroid(points, customCenter);
-    
+
     // Calculate the bounds of the current points dataset
     const pointsForBounds = pointsWithAngles.map(({ label, x, y }) => [label, x, y]);
     const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
@@ -2107,6 +2107,18 @@ function updateVisualization() {
     }
 
     // Get global parameters
+    const globalParamValues = getGlobalParamValues();
+
+    g_cachedAngles = calculateAngles(points,
+        (args) => shader.fn(args, shaderParams),
+        globalParamValues
+    );
+    visualize(g_cachedAngles, { customCenter: globalParamValues.custom_centroid });
+
+    saveShaderStateToLocalStorage();
+}
+
+function getGlobalParamValues() {
     const globalParamValues = {};
     globalParams.forEach(param => {
         if (param.paramType === ParamTypes.BOOLEAN) {
@@ -2115,7 +2127,7 @@ function updateVisualization() {
         } else if (param.paramType === ParamTypes.COORDINATE) {
             const xInput = document.getElementById(`global-param-${param.name}-x`);
             const yInput = document.getElementById(`global-param-${param.name}-y`);
-            
+
             // Only include if both x and y have valid values
             if (xInput && yInput && !isNaN(parseFloat(xInput.value)) && !isNaN(parseFloat(yInput.value))) {
                 globalParamValues[param.name] = {
@@ -2131,13 +2143,7 @@ function updateVisualization() {
         }
     });
 
-    g_cachedAngles = calculateAngles(points,
-        (args) => shader.fn(args, shaderParams),
-        globalParamValues
-    );
-    visualize(g_cachedAngles, { customCenter: globalParamValues.custom_centroid });
-
-    saveShaderStateToLocalStorage();
+    return globalParamValues;
 }
 
 // Modify the crosshair mode to update custom coordinates
@@ -2344,7 +2350,6 @@ function exitCoordinatePicker() {
     g_currentPickingPrefix = null;
 }
 
-// Modified handleCoordinatePickingClick function to fix the coordinate system
 function handleCoordinatePickingClick(e) {
     if (!g_coordinatePickingMode || !g_currentPickingParam) return;
 
@@ -2358,16 +2363,15 @@ function handleCoordinatePickingClick(e) {
     const canvasX = (e.clientX - rect.left) * scaleX;
     const canvasY = (e.clientY - rect.top) * scaleY;
 
-    // Calculate natural centroid and bounds
+    // Calculate bounds and scale exactly as visualize does
     const pointsForBounds = points.map(([label, x, y]) => [label, x, y]);
-    const naturalCentroid = computeCentroid(pointsForBounds);
     const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
     const boundsWidth = maxX - minX;
     const boundsHeight = maxY - minY;
     const boundsMiddleX = minX + boundsWidth / 2;
     const boundsMiddleY = minY + boundsHeight / 2;
 
-    // Calculate the scaling factor
+    // Calculate the scale factor that visualize uses
     const xScale = (canvas.width - 80) / (boundsWidth || 1);
     const yScale = (canvas.height - 80) / (boundsHeight || 1);
     const scale = 10;
@@ -2378,11 +2382,28 @@ function handleCoordinatePickingClick(e) {
     const centeredX = canvasX - canvas.width / 2;
     const centeredY = canvas.height / 2 - canvasY;
 
-    // Convert to internal coordinate system (mm)
+    // Convert to internal coordinate system
     const mmX = centeredX / finalScale + boundsMiddleX;
     const mmY = centeredY / finalScale + boundsMiddleY;
 
-    // Check the inputs
+    // Calculate a threshold based on the LED package size for snapping
+    const ledPackage = document.getElementById('led-package').value;
+    const [ledWidth, ledHeight] = getLedSize(ledPackage, Units.MM);
+    const clickThreshold = Math.sqrt(ledWidth * ledWidth + ledHeight * ledHeight) * 0.75;
+
+    let closestLED = null;
+    let minDistance = Infinity;
+
+    // Find the closest LED to the click point
+    for (const [label, ledX, ledY] of points) {
+        const distance = Math.hypot(ledX - mmX, ledY - mmY);
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestLED = [label, ledX, ledY];
+        }
+    }
+
+    // Check if inputs exist
     const xInput = document.getElementById(`${g_currentPickingPrefix}${g_currentPickingParam}-x`);
     const yInput = document.getElementById(`${g_currentPickingPrefix}${g_currentPickingParam}-y`);
 
@@ -2391,14 +2412,24 @@ function handleCoordinatePickingClick(e) {
         return;
     }
 
-    let coordX, coordY;
-    
-    // Determine the maximum dimension for normalization
+    // Always use normalized coordinates
+    const naturalCentroid = computeCentroid(points);
     const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
     
-    // Calculate normalized coordinates relative to the natural centroid
-    coordX = (mmX - naturalCentroid.cx) / maxDimension;
-    coordY = (mmY - naturalCentroid.cy) / maxDimension;
+    let coordX, coordY;
+    let snappedToLed = false;
+
+    // Use LED coordinates if close enough
+    if (minDistance < clickThreshold && closestLED) {
+        // Convert LED position to normalized coordinates
+        coordX = (closestLED[1] - naturalCentroid.cx) / maxDimension;
+        coordY = (closestLED[2] - naturalCentroid.cy) / maxDimension;
+        snappedToLed = true;
+    } else {
+        // Convert click position to normalized coordinates
+        coordX = (mmX - naturalCentroid.cx) / maxDimension;
+        coordY = (mmY - naturalCentroid.cy) / maxDimension;
+    }
     
     // Clamp to -1 to 1 range
     coordX = Math.max(-1, Math.min(1, coordX));
@@ -2412,7 +2443,12 @@ function handleCoordinatePickingClick(e) {
     xInput.dispatchEvent(new Event('change'));
     yInput.dispatchEvent(new Event('change'));
 
-    showNotification(`Coordinate for ${formatParameterName(g_currentPickingParam)} set to (${coordX.toFixed(2)}, ${coordY.toFixed(2)})`, false, 'success');
+    // Show appropriate notification
+    if (snappedToLed) {
+        showNotification(`Snapped to LED '${closestLED[0]}' for ${formatParameterName(g_currentPickingParam)}`, false, 'success');
+    } else {
+        showNotification(`Coordinate for ${formatParameterName(g_currentPickingParam)} set to (${coordX.toFixed(2)}, ${coordY.toFixed(2)})`, false, 'success');
+    }
 
     updateVisualization();
 
