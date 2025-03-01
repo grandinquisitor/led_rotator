@@ -392,6 +392,22 @@ const p = function (name, paramType, defaultValue = null, description = null, { 
     return new Param(name, paramType, defaultValue, description, min, max, step);
 };
 
+const globalParams = [
+    p('custom_centroid', ParamTypes.COORDINATE, { x: 0, y: 0 },
+        "Custom center point for rotation calculations. When set, overrides the natural centroid."),
+    p('fixed_offset', ParamTypes.ANGLE, 0,
+        "Fixed angle added to every LED (after shader processing).",
+        { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
+    p('counter_rotate', ParamTypes.BOOLEAN, false,
+        "Invert rotation direction (multiply final angle by -1)"),
+    p('radial_offset', ParamTypes.ANGLE, 0,
+        "Angle added to each LED's radial angle (before shader processing).",
+        { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
+    p('quantize', ParamTypes.ANGLE, 0,
+        "Round final angle to nearest multiple of this value (0 = no quantization).",
+        { min: 0, max: Math.PI / 2, step: Math.PI / 16 })
+];
+
 const shaderRegistry = {};
 function registerShader(name, description, paramDefs, shaderFn) {
     if (typeof name !== 'string') {
@@ -1532,12 +1548,16 @@ function computeCentroid(points, customCenter = null) {
     return { cx: sumX / points.length, cy: sumY / points.length };
 }
 
-function calculateAngles(points, rotationFormula, options = {}) {
-    const {
-        customCenter = null,
-    } = options;
-
+function calculateAngles(points, rotationFormula, globalParams = {}) {
+    // Get custom centroid from global parameters
+    const customCenter = globalParams.custom_centroid && 
+        typeof globalParams.custom_centroid.x === 'number' && 
+        typeof globalParams.custom_centroid.y === 'number' ? 
+        convertNormalizedToAbsolute(globalParams.custom_centroid, points) : null;
+    
+    // Use the custom center or fall back to natural centroid
     const { cx, cy } = computeCentroid(points, customCenter);
+    
     const distances = points.map(([label, x, y]) => Math.hypot(x - cx, y - cy));
     const maxDistance = distances.length ? Math.max(...distances) : 0;
 
@@ -1548,20 +1568,58 @@ function calculateAngles(points, rotationFormula, options = {}) {
         const dy = y - cy;
         const dist = distances[i];
 
-        let angleRad;
-        const radialAngle = Math.atan2(dy, dx);
-        angleRad = rotationFormula({
+        // Apply radial offset if specified
+        let radialAngle = Math.atan2(dy, dx);
+        if (globalParams.radial_offset) {
+            radialAngle += globalParams.radial_offset;
+        }
+
+        // Call the shader's rotation formula with normalized coordinates
+        let angleRad = rotationFormula({
             radial_angle: radialAngle,
             radius: dist / maxDistance,
             dx: dx / maxDistance,
             dy: dy / maxDistance,
             label: label
         });
+        
+        // Apply counter-rotation if enabled
+        if (globalParams.counter_rotate) {
+            angleRad *= -1;
+        }
+        
+        // Apply fixed offset
+        if (globalParams.fixed_offset) {
+            angleRad += globalParams.fixed_offset;
+        }
+        
+        // Apply quantization if enabled
+        if (globalParams.quantize > 0) {
+            angleRad = Math.round(angleRad / globalParams.quantize) * globalParams.quantize;
+        }
+        
         let angleDeg = (angleRad * 180 / Math.PI) % 360;
         if (angleDeg < 0) angleDeg += 360;
         result.push({ label, x, y, angleDeg });
     }
     return result;
+}
+
+// Helper function to convert normalized coordinates to absolute
+function convertNormalizedToAbsolute(normalizedCoord, points) {
+    const naturalCentroid = computeCentroid(points);
+    
+    // Calculate bounds to determine scaling
+    const { minX, maxX, minY, maxY } = calculatePointsBounds(points);
+    const boundsWidth = maxX - minX;
+    const boundsHeight = maxY - minY;
+    const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
+    
+    // Convert normalized coordinates (-1 to 1) to absolute coordinates
+    return {
+        x: naturalCentroid.cx + (normalizedCoord.x * maxDimension),
+        y: naturalCentroid.cy + (normalizedCoord.y * maxDimension)
+    };
 }
 
 // Function to calculate bounds of the points dataset
@@ -1582,7 +1640,6 @@ function calculatePointsBounds(pointsArray) {
     return { minX, maxX, minY, maxY };
 }
 
-// Updated visualize function with dynamic centering
 function visualize(pointsWithAngles, options = {}) {
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -1595,21 +1652,22 @@ function visualize(pointsWithAngles, options = {}) {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // For this demo, we define a fixed LED size (in "mm") and a scale factor.
-    // You can adjust these values or add unit conversion as needed.
     const scale = 10;  // 10 pixels per mm
-
-    // Get the selected LED package and color
     const ledPackage = document.getElementById('led-package').value;
     const ledColor = document.getElementById('led-color').value;
-
-    // Get LED dimensions based on package
     const [ledWidth, ledHeight] = getLedSize(ledPackage, Units.MM);
 
-    const centerX = options.customCenter ? options.customCenter.x : null;
-    const centerY = options.customCenter ? options.customCenter.y : null;
-    const { cx, cy } = computeCentroid(points, { x: centerX, y: centerY });
-
+    // Get custom centroid from options and convert from normalized to absolute if needed
+    let customCenter = null;
+    if (options.customCenter && 
+        typeof options.customCenter.x === 'number' && 
+        typeof options.customCenter.y === 'number') {
+        
+        customCenter = convertNormalizedToAbsolute(options.customCenter, points);
+    }
+    
+    const { cx, cy } = computeCentroid(points, customCenter);
+    
     // Calculate the bounds of the current points dataset
     const pointsForBounds = pointsWithAngles.map(({ label, x, y }) => [label, x, y]);
     const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
@@ -1621,12 +1679,9 @@ function visualize(pointsWithAngles, options = {}) {
     const boundsMiddleY = minY + boundsHeight / 2;
 
     // Determine a good scaling factor to fit all points on the canvas with some margin
-    // This provides automatic zooming in/out based on the data extent
     const xScale = (canvas.width - 80) / (boundsWidth || 1); // 40px margin on each side
     const yScale = (canvas.height - 80) / (boundsHeight || 1); // 40px margin on each side
     const dynamicScale = Math.min(xScale, yScale, scale);
-
-    // For very small datasets, don't zoom in too much
     const finalScale = dynamicScale > scale ? scale : dynamicScale;
 
     // For visualization, we translate the coordinate system:
@@ -1681,20 +1736,6 @@ function visualize(pointsWithAngles, options = {}) {
         ctx.stroke();
 
         ctx.restore();
-
-        /*
-        // Draw the label near the LED.
-        ctx.save();
-        ctx.translate(px, py);
-        // Since text renders normally, flip the y-axis back.
-        ctx.scale(1, -1);
-        ctx.fillStyle = 'black';
-        ctx.font = "10px Arial";
-        ctx.textAlign = 'center';
-        // don't show label
-        ctx.fillText(label, 0, 0);
-        ctx.restore();
-        */
     });
 
     ctx.restore();
@@ -1750,6 +1791,18 @@ function populateShaderParams() {
     }
 }
 
+function populateGlobalParams() {
+    const container = document.getElementById('global-params-container');
+    container.innerHTML = '';
+
+    // Create UI controls for each global parameter
+    if (globalParams.length) {
+        globalParams.forEach(param => {
+            createParameterControl(param, container, 'global-param-');
+        });
+    }
+}
+
 // Adds the shader description to the container if available
 function addShaderDescription(shader, container) {
     if (shader?.desc) {
@@ -1762,18 +1815,18 @@ function addShaderDescription(shader, container) {
 }
 
 // Creates the appropriate control for a shader parameter
-function createParameterControl(param, container) {
+function createParameterControl(param, container, idPrefix = 'param-') {
     const div = document.createElement('div');
     div.classList.add('control-item');
 
     if (param.paramType === ParamTypes.BOOLEAN) {
-        createToggleSwitch(param, div);
+        createToggleSwitch(param, div, idPrefix);
     } else if (param.paramType === ParamTypes.COORDINATE) {
-        createCoordinateInput(param, div);
+        createCoordinateInput(param, div, idPrefix);
     } else if (isRangeParameter(param)) {
-        createRangeSlider(param, div);
+        createRangeSlider(param, div, idPrefix);
     } else {
-        createNumberInput(param, div);
+        createNumberInput(param, div, idPrefix);
     }
 
     // Add parameter description if available
@@ -1788,14 +1841,14 @@ function createParameterControl(param, container) {
 }
 
 // Creates a toggle switch for boolean parameters
-function createToggleSwitch(param, container) {
+function createToggleSwitch(param, container, idPrefix = 'param-') {
     // Create container
     const switchContainer = document.createElement('div');
     switchContainer.className = 'switch-container';
 
     // Create label
     const label = document.createElement('label');
-    label.setAttribute('for', `param-${param.name}`);
+    label.setAttribute('for', `${idPrefix}${param.name}`);
     label.textContent = formatParameterName(param.name);
 
     // Create switch
@@ -1805,7 +1858,7 @@ function createToggleSwitch(param, container) {
     // Create input
     const input = document.createElement('input');
     input.type = 'checkbox';
-    input.id = `param-${param.name}`;
+    input.id = `${idPrefix}${param.name}`;
     input.checked = param.defaultValue === true;
 
     // Create slider
@@ -1822,10 +1875,10 @@ function createToggleSwitch(param, container) {
 }
 
 // Creates a range slider with value display
-function createRangeSlider(param, container) {
+function createRangeSlider(param, container, idPrefix = 'param-') {
     // Create label
     const label = document.createElement('label');
-    label.setAttribute('for', `param-${param.name}`);
+    label.setAttribute('for', `${idPrefix}${param.name}`);
     label.textContent = formatParameterName(param.name);
 
     // Create value display
@@ -1837,7 +1890,7 @@ function createRangeSlider(param, container) {
     // Create slider
     const input = document.createElement('input');
     input.type = 'range';
-    input.id = `param-${param.name}`;
+    input.id = `${idPrefix}${param.name}`;
 
     // Set min, max, and step attributes
     setRangeAttributes(input, param);
@@ -1855,16 +1908,16 @@ function createRangeSlider(param, container) {
 }
 
 // Creates a number input for numeric parameters
-function createNumberInput(param, container) {
+function createNumberInput(param, container, idPrefix = 'param-') {
     // Create label
     const label = document.createElement('label');
-    label.setAttribute('for', `param-${param.name}`);
+    label.setAttribute('for', `${idPrefix}${param.name}`);
     label.textContent = formatParameterName(param.name);
 
     // Create input
     const input = document.createElement('input');
     input.type = 'number';
-    input.id = `param-${param.name}`;
+    input.id = `${idPrefix}${param.name}`;
 
     if (param.min !== null) input.min = param.min;
     if (param.max !== null) input.max = param.max;
@@ -1877,7 +1930,7 @@ function createNumberInput(param, container) {
 }
 
 // Create a new function to handle coordinate input UI
-function createCoordinateInput(param, container) {
+function createCoordinateInput(param, container, idPrefix = 'param-') {
     // Create label
     const label = document.createElement('label');
     label.textContent = formatParameterName(param.name);
@@ -1898,7 +1951,7 @@ function createCoordinateInput(param, container) {
 
     const xInput = document.createElement('input');
     xInput.type = 'number';
-    xInput.id = `param-${param.name}-x`;
+    xInput.id = `${idPrefix}${param.name}-x`;
     xInput.value = param.defaultValue.x.toString();
     xInput.step = param.step || 0.1;
     if (param.min !== null) xInput.min = param.min;
@@ -1916,7 +1969,7 @@ function createCoordinateInput(param, container) {
 
     const yInput = document.createElement('input');
     yInput.type = 'number';
-    yInput.id = `param-${param.name}-y`;
+    yInput.id = `${idPrefix}${param.name}-y`;
     yInput.value = param.defaultValue.y.toString();
     yInput.step = param.step || 0.1;
     if (param.min !== null) yInput.min = param.min;
@@ -1929,8 +1982,9 @@ function createCoordinateInput(param, container) {
     pickButton.innerHTML = '&#x2316;'; // Crosshair symbol
     pickButton.title = 'Pick coordinate on canvas';
     pickButton.dataset.paramName = param.name;
+    pickButton.dataset.paramPrefix = idPrefix;
     pickButton.addEventListener('click', () => {
-        activateCoordinatePicker(param.name);
+        activateCoordinatePicker(param.name, idPrefix);
     });
 
     // Assemble the UI elements
@@ -2031,6 +2085,7 @@ function updateVisualization() {
     const shader = shaderRegistry[shaderName];
     if (!shader) return;
 
+    // Get shader parameters
     const shaderParams = {};
     if (shader.params) {
         shader.params.forEach(param => {
@@ -2051,26 +2106,47 @@ function updateVisualization() {
         });
     }
 
-    const globalOptions = {
-        customCenter: g_customCenter || null,
-    };
+    // Get global parameters
+    const globalParamValues = {};
+    globalParams.forEach(param => {
+        if (param.paramType === ParamTypes.BOOLEAN) {
+            const input = document.getElementById(`global-param-${param.name}`);
+            globalParamValues[param.name] = input?.checked || param.defaultValue;
+        } else if (param.paramType === ParamTypes.COORDINATE) {
+            const xInput = document.getElementById(`global-param-${param.name}-x`);
+            const yInput = document.getElementById(`global-param-${param.name}-y`);
+            
+            // Only include if both x and y have valid values
+            if (xInput && yInput && !isNaN(parseFloat(xInput.value)) && !isNaN(parseFloat(yInput.value))) {
+                globalParamValues[param.name] = {
+                    x: parseFloat(xInput.value),
+                    y: parseFloat(yInput.value)
+                };
+            }
+        } else {
+            const input = document.getElementById(`global-param-${param.name}`);
+            if (input && !isNaN(parseFloat(input.value))) {
+                globalParamValues[param.name] = parseFloat(input.value);
+            }
+        }
+    });
 
     g_cachedAngles = calculateAngles(points,
         (args) => shader.fn(args, shaderParams),
-        globalOptions
+        globalParamValues
     );
-    visualize(g_cachedAngles, globalOptions);
+    visualize(g_cachedAngles, { customCenter: globalParamValues.custom_centroid });
 
     saveShaderStateToLocalStorage();
 }
 
-
 // Modify the crosshair mode to update custom coordinates
-let g_customCenter = null; // Store the custom center coordinates
-let g_crosshairMode = false; // Flag to indicate crosshair mode
+let g_customCenter = null; // TODO: delete
+let g_crosshairMode = false; // TODO: delete
 
 let g_coordinatePickingMode = false;
 let g_currentPickingParam = null;
+let g_currentPickingPrefix = null;
 
 
 function initCentroidUI() {
@@ -2225,7 +2301,7 @@ function initPickerFunctionality() {
     });
 }
 
-function activateCoordinatePicker(paramName) {
+function activateCoordinatePicker(paramName, idPrefix = 'param-') {
     const canvas = document.getElementById('canvas');
 
     // Exit if already in any picking mode
@@ -2237,12 +2313,13 @@ function activateCoordinatePicker(paramName) {
     // Enter picking mode
     g_coordinatePickingMode = true;
     g_currentPickingParam = paramName;
+    g_currentPickingPrefix = idPrefix;
 
     // Change cursor to crosshair
     canvas.style.cursor = 'crosshair';
 
     // Disable the pick button
-    const pickButton = document.querySelector(`button[data-param-name="${paramName}"]`);
+    const pickButton = document.querySelector(`button[data-param-name="${paramName}"][data-param-prefix="${idPrefix}"]`);
     if (pickButton) pickButton.disabled = true;
 
     // Show notification
@@ -2256,16 +2333,18 @@ function exitCoordinatePicker() {
     canvas.style.cursor = 'default';
 
     // Re-enable the pick button if there was an active parameter
-    if (g_currentPickingParam) {
-        const pickButton = document.querySelector(`button[data-param-name="${g_currentPickingParam}"]`);
+    if (g_currentPickingParam && g_currentPickingPrefix) {
+        const pickButton = document.querySelector(`button[data-param-name="${g_currentPickingParam}"][data-param-prefix="${g_currentPickingPrefix}"]`);
         if (pickButton) pickButton.disabled = false;
     }
 
     // Reset state
     g_coordinatePickingMode = false;
     g_currentPickingParam = null;
+    g_currentPickingPrefix = null;
 }
 
+// Modified handleCoordinatePickingClick function to fix the coordinate system
 function handleCoordinatePickingClick(e) {
     if (!g_coordinatePickingMode || !g_currentPickingParam) return;
 
@@ -2279,15 +2358,16 @@ function handleCoordinatePickingClick(e) {
     const canvasX = (e.clientX - rect.left) * scaleX;
     const canvasY = (e.clientY - rect.top) * scaleY;
 
-    // Calculate bounds and scale exactly as visualize does
+    // Calculate natural centroid and bounds
     const pointsForBounds = points.map(([label, x, y]) => [label, x, y]);
+    const naturalCentroid = computeCentroid(pointsForBounds);
     const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
     const boundsWidth = maxX - minX;
     const boundsHeight = maxY - minY;
     const boundsMiddleX = minX + boundsWidth / 2;
     const boundsMiddleY = minY + boundsHeight / 2;
 
-    // Calculate the scale factor that visualize uses
+    // Calculate the scaling factor
     const xScale = (canvas.width - 80) / (boundsWidth || 1);
     const yScale = (canvas.height - 80) / (boundsHeight || 1);
     const scale = 10;
@@ -2298,52 +2378,31 @@ function handleCoordinatePickingClick(e) {
     const centeredX = canvasX - canvas.width / 2;
     const centeredY = canvas.height / 2 - canvasY;
 
-    // Convert to internal coordinate system
+    // Convert to internal coordinate system (mm)
     const mmX = centeredX / finalScale + boundsMiddleX;
     const mmY = centeredY / finalScale + boundsMiddleY;
 
-    // Check if we need to normalize coordinates (-1 to 1 range is common for shader params)
-    const xInput = document.getElementById(`param-${g_currentPickingParam}-x`);
-    const yInput = document.getElementById(`param-${g_currentPickingParam}-y`);
+    // Check the inputs
+    const xInput = document.getElementById(`${g_currentPickingPrefix}${g_currentPickingParam}-x`);
+    const yInput = document.getElementById(`${g_currentPickingPrefix}${g_currentPickingParam}-y`);
 
     if (!xInput || !yInput) {
         exitCoordinatePicker();
         return;
     }
 
-    // Check for min/max constraints
-    const minVal = parseFloat(xInput.min); // Assuming same constraints for X and Y
-    const maxVal = parseFloat(xInput.max);
-
-    let coordX = mmX;
-    let coordY = mmY;
-
-    // Normalize if the parameter uses -1 to 1 range
-    const needsNormalization = !isNaN(minVal) && !isNaN(maxVal) &&
-        (minVal === -1 && maxVal === 1);
-
-    if (needsNormalization) {
-        // Calculate the max dimension for uniform scaling
-        const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
-
-        // Normalize to -1 to 1 range relative to center
-        coordX = (mmX - boundsMiddleX) / maxDimension;
-        coordY = (mmY - boundsMiddleY) / maxDimension;
-
-        // Clamp to -1 to 1 range
-        coordX = Math.max(-1, Math.min(1, coordX));
-        coordY = Math.max(-1, Math.min(1, coordY));
-    } else {
-        // For non-normalized coordinates, just clamp if needed
-        if (!isNaN(minVal)) {
-            coordX = Math.max(minVal, coordX);
-            coordY = Math.max(minVal, coordY);
-        }
-        if (!isNaN(maxVal)) {
-            coordX = Math.min(maxVal, coordX);
-            coordY = Math.min(maxVal, coordY);
-        }
-    }
+    let coordX, coordY;
+    
+    // Determine the maximum dimension for normalization
+    const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
+    
+    // Calculate normalized coordinates relative to the natural centroid
+    coordX = (mmX - naturalCentroid.cx) / maxDimension;
+    coordY = (mmY - naturalCentroid.cy) / maxDimension;
+    
+    // Clamp to -1 to 1 range
+    coordX = Math.max(-1, Math.min(1, coordX));
+    coordY = Math.max(-1, Math.min(1, coordY));
 
     // Update input fields
     xInput.value = coordX.toFixed(2);
@@ -2354,6 +2413,8 @@ function handleCoordinatePickingClick(e) {
     yInput.dispatchEvent(new Event('change'));
 
     showNotification(`Coordinate for ${formatParameterName(g_currentPickingParam)} set to (${coordX.toFixed(2)}, ${coordY.toFixed(2)})`, false, 'success');
+
+    updateVisualization();
 
     // Exit coordinate picking mode
     exitCoordinatePicker();
@@ -2754,6 +2815,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
     });
 
+    const globalParamsContainer = document.querySelector('#global-params-container');
+    if (globalParamsContainer) {
+        globalParamsContainer.addEventListener('input', updateVisualization);
+        globalParamsContainer.addEventListener('change', updateVisualization);
+    }
+
     // Add download functionality
     document.getElementById('export-download').addEventListener('click', () => {
         const exportText = document.getElementById('export-csv-text').value;
@@ -2820,14 +2887,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    initCentroidUI();
+    // initCentroidUI();
     initPickerFunctionality();
 
     // Initial population and visualization
     populateShaderSelect();
+    populateGlobalParams();
 
     if (!loadStateFromUrl()) {
-        loadShaderStateFromLocalStorage();
+        // loadShaderStateFromLocalStorage();
     }
 
     updateVisualization();
