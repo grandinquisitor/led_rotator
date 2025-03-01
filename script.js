@@ -436,7 +436,7 @@ registerShader("radial_rays", "Orients LEDs relative to their radial angle from 
         p('counter_rotate', ParamTypes.BOOLEAN, false,
             "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
-    (args, params) => args.radial_angle * (params.counter_rotate ?  -1 : 1)
+    (args, params) => args.radial_angle * (params.counter_rotate ? -1 : 1)
 );
 
 registerShader(
@@ -768,8 +768,10 @@ registerShader(
     [
         p('spin_states', ParamTypes.INTEGER, 8,
             "Number of discrete spin states; higher values yield finer angular quantization.",
-            { min: 2, max: null, step: 1 })
+            { min: 2, max: 16, step: 1 })
     ], (args, params) => {
+
+        // special case 2 states to quantize to 90° because otherwise they're 180° apart
         if (params.spin_states === 2) {
             return Math.round(args.radial_angle * 2 / (2 * Math.PI)) * (Math.PI / 2);
         }
