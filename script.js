@@ -2042,17 +2042,17 @@ function isRangeParameter(param) {
         param.paramType === ParamTypes.ANGLE;
 }
 
-function resetParameters(params, idPrefix, showNotification = true) {
+function resetParameters(params, idPrefix, notify = true) {
     if (!params || params.length === 0) {
         return; // No parameters to reset
     }
 
     // Reset each parameter to its default value
     params.forEach(param => {
-        const inputElem = document.getElementById(`${idPrefix}${param.name}`);
-        if (!inputElem) return;
-
         if (param.paramType === ParamTypes.BOOLEAN) {
+            const inputElem = document.getElementById(`${idPrefix}${param.name}`);
+            if (!inputElem) return;
+
             inputElem.checked = param.defaultValue === true;
             // Trigger a change event for checkboxes
             inputElem.dispatchEvent(new Event('change'));
@@ -2070,6 +2070,9 @@ function resetParameters(params, idPrefix, showNotification = true) {
                 yInput.dispatchEvent(new Event('change'));
             }
         } else {
+            const inputElem = document.getElementById(`${idPrefix}${param.name}`);
+            if (!inputElem) return;
+
             inputElem.value = param.defaultValue.toString();
             // Trigger the appropriate event to update any UI elements (like value displays)
             const eventType = inputElem.type === 'range' ? 'input' : 'change';
@@ -2081,8 +2084,8 @@ function resetParameters(params, idPrefix, showNotification = true) {
     updateVisualization();
 
     // Show notification if requested
-    if (showNotification) {
-        window.showNotification('Parameters reset to default values', false, 'success');
+    if (notify) {
+        showNotification('Parameters reset to default values', false, 'success');
     }
 }
 
@@ -2099,12 +2102,12 @@ function resetShaderParameters() {
 }
 
 // Reset global parameters
-function resetGlobalParameters(showNotification = true) {
+function resetGlobalParameters(notify = true) {
     if (!globalParams) {
         return; // No global parameters defined
     }
 
-    resetParameters(globalParams, 'global-param-', showNotification);
+    resetParameters(globalParams, 'global-param-', notify);
 }
 
 let g_cachedAngles = [];
@@ -2813,7 +2816,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('background-color').addEventListener('change', appearanceUpdateHandler);
 
     // Set up shader select change handler
-    document.getElementById('shader-select').addEventListener('change', populateShaderParams);
+    document.getElementById('shader-select').addEventListener('change', () => {
+        populateShaderParams();
+        resetGlobalParameters(false);
+    });
 
     // Listen for input and change events on the sidebar that contains all controls
     // This uses event delegation to catch events from all child controls
