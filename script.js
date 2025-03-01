@@ -353,7 +353,7 @@ const ParamTypes = Object.freeze({
     PERCENT: new ParamType('PERCENT', 0, 'number', v => v >= 0 && v <= 1),
     ANGLE: new ParamType('ANGLE', 0, 'number', v => v >= 0 && v <= 2 * Math.PI),
     BOOLEAN: new ParamType('BOOLEAN', 0, 'boolean', value => typeof value === 'boolean'),
-    COORDINATE: new ParamType('COORDINATE', {x: 0, y: 0}, 'object', v => 
+    COORDINATE: new ParamType('COORDINATE', { x: 0, y: 0 }, 'object', v =>
         typeof v === 'object' && v !== null && typeof v.x === 'number' && typeof v.y === 'number')
 });
 
@@ -915,10 +915,10 @@ registerShader(
     "wave_interference",
     "Simulates the interference pattern of multiple waves emanating from different points.",
     [
-        p('source1', ParamTypes.COORDINATE, {x: 0.3, y: 0.3},
+        p('source1', ParamTypes.COORDINATE, { x: 0.3, y: 0.3 },
             "Position of the first wave source (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
-        p('source2', ParamTypes.COORDINATE, {x: -0.3, y: -0.3},
+        p('source2', ParamTypes.COORDINATE, { x: -0.3, y: -0.3 },
             "Position of the second wave source (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
         p('frequency', ParamTypes.NUMBER, 2,
@@ -968,13 +968,13 @@ registerShader(
     "electric_field",
     "Simulates an electric field with multiple point charges.",
     [
-      p('charge1', ParamTypes.COORDINATE, {x: 0.3, y: 0.3},
+        p('charge1', ParamTypes.COORDINATE, { x: 0.3, y: 0.3 },
             "Position of the first charge (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
         p('charge1_value', ParamTypes.NUMBER, 1,
             "Value of the first charge (positive or negative).",
             { min: -3, max: 3, step: 0.1 }),
-        p('charge2', ParamTypes.COORDINATE, {x: -0.3, y: -0.3},
+        p('charge2', ParamTypes.COORDINATE, { x: -0.3, y: -0.3 },
             "Position of the second charge (-1 to 1).",
             { min: -1, max: 1, step: 0.05 }),
         p('charge2_value', ParamTypes.NUMBER, -1,
@@ -1886,16 +1886,16 @@ function createCoordinateInput(param, container) {
     // Create coordinate container
     const coordContainer = document.createElement('div');
     coordContainer.classList.add('coordinate-container');
-    
+
     // Create X input group
     const xGroup = document.createElement('div');
     xGroup.classList.add('coordinate-input-group');
-    
+
     const xLabel = document.createElement('span');
     xLabel.textContent = 'X:';
     xLabel.classList.add('coordinate-label');
     xGroup.appendChild(xLabel);
-    
+
     const xInput = document.createElement('input');
     xInput.type = 'number';
     xInput.id = `param-${param.name}-x`;
@@ -1904,16 +1904,16 @@ function createCoordinateInput(param, container) {
     if (param.min !== null) xInput.min = param.min;
     if (param.max !== null) xInput.max = param.max;
     xGroup.appendChild(xInput);
-    
+
     // Create Y input group
     const yGroup = document.createElement('div');
     yGroup.classList.add('coordinate-input-group');
-    
+
     const yLabel = document.createElement('span');
     yLabel.textContent = 'Y:';
     yLabel.classList.add('coordinate-label');
     yGroup.appendChild(yLabel);
-    
+
     const yInput = document.createElement('input');
     yInput.type = 'number';
     yInput.id = `param-${param.name}-y`;
@@ -1922,10 +1922,21 @@ function createCoordinateInput(param, container) {
     if (param.min !== null) yInput.min = param.min;
     if (param.max !== null) yInput.max = param.max;
     yGroup.appendChild(yInput);
-    
-    // Add input groups to container
+
+    // Crosshair button for picking coordinates on canvas
+    const pickButton = document.createElement('button');
+    pickButton.classList.add('coordinate-pick-button');
+    pickButton.innerHTML = '&#x2316;'; // Crosshair symbol
+    pickButton.title = 'Pick coordinate on canvas';
+    pickButton.dataset.paramName = param.name;
+    pickButton.addEventListener('click', () => {
+        activateCoordinatePicker(param.name);
+    });
+
+    // Assemble the UI elements
     coordContainer.appendChild(xGroup);
     coordContainer.appendChild(yGroup);
+    coordContainer.appendChild(pickButton);
     container.appendChild(coordContainer);
 }
 
@@ -2057,6 +2068,9 @@ function updateVisualization() {
 // Modify the crosshair mode to update custom coordinates
 let g_customCenter = null; // Store the custom center coordinates
 let g_crosshairMode = false; // Flag to indicate crosshair mode
+
+let g_coordinatePickingMode = false;
+let g_currentPickingParam = null;
 
 
 function initCentroidUI() {
@@ -2195,6 +2209,154 @@ function updateCentroidStatus() {
         defaultStatus.style.display = 'block';
         customStatus.style.display = 'none';
     }
+}
+
+// In document ready or initialization function
+function initPickerFunctionality() {
+    const canvas = document.getElementById('canvas');
+
+    // Canvas click handler
+    canvas.addEventListener('click', (e) => {
+        if (g_crosshairMode) {
+            return;
+        } else if (g_coordinatePickingMode) {
+            handleCoordinatePickingClick(e);
+        }
+    });
+}
+
+function activateCoordinatePicker(paramName) {
+    const canvas = document.getElementById('canvas');
+
+    // Exit if already in any picking mode
+    if (g_coordinatePickingMode || g_crosshairMode) {
+        exitCoordinatePicker();
+        return;
+    }
+
+    // Enter picking mode
+    g_coordinatePickingMode = true;
+    g_currentPickingParam = paramName;
+
+    // Change cursor to crosshair
+    canvas.style.cursor = 'crosshair';
+
+    // Disable the pick button
+    const pickButton = document.querySelector(`button[data-param-name="${paramName}"]`);
+    if (pickButton) pickButton.disabled = true;
+
+    // Show notification
+    showNotification(`Click on canvas to set coordinate for ${formatParameterName(paramName)}, or press Esc to cancel`, false, 'info');
+}
+
+function exitCoordinatePicker() {
+    const canvas = document.getElementById('canvas');
+
+    // Reset cursor
+    canvas.style.cursor = 'default';
+
+    // Re-enable the pick button if there was an active parameter
+    if (g_currentPickingParam) {
+        const pickButton = document.querySelector(`button[data-param-name="${g_currentPickingParam}"]`);
+        if (pickButton) pickButton.disabled = false;
+    }
+
+    // Reset state
+    g_coordinatePickingMode = false;
+    g_currentPickingParam = null;
+}
+
+function handleCoordinatePickingClick(e) {
+    if (!g_coordinatePickingMode || !g_currentPickingParam) return;
+
+    // Get canvas position and dimensions
+    const canvas = document.getElementById('canvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // Calculate clicked position in canvas coordinates
+    const canvasX = (e.clientX - rect.left) * scaleX;
+    const canvasY = (e.clientY - rect.top) * scaleY;
+
+    // Calculate bounds and scale exactly as visualize does
+    const pointsForBounds = points.map(([label, x, y]) => [label, x, y]);
+    const { minX, maxX, minY, maxY } = calculatePointsBounds(pointsForBounds);
+    const boundsWidth = maxX - minX;
+    const boundsHeight = maxY - minY;
+    const boundsMiddleX = minX + boundsWidth / 2;
+    const boundsMiddleY = minY + boundsHeight / 2;
+
+    // Calculate the scale factor that visualize uses
+    const xScale = (canvas.width - 80) / (boundsWidth || 1);
+    const yScale = (canvas.height - 80) / (boundsHeight || 1);
+    const scale = 10;
+    const dynamicScale = Math.min(xScale, yScale, scale);
+    const finalScale = dynamicScale > scale ? scale : dynamicScale;
+
+    // Transform canvas coordinates to centered, y-flipped system
+    const centeredX = canvasX - canvas.width / 2;
+    const centeredY = canvas.height / 2 - canvasY;
+
+    // Convert to internal coordinate system
+    const mmX = centeredX / finalScale + boundsMiddleX;
+    const mmY = centeredY / finalScale + boundsMiddleY;
+
+    // Check if we need to normalize coordinates (-1 to 1 range is common for shader params)
+    const xInput = document.getElementById(`param-${g_currentPickingParam}-x`);
+    const yInput = document.getElementById(`param-${g_currentPickingParam}-y`);
+
+    if (!xInput || !yInput) {
+        exitCoordinatePicker();
+        return;
+    }
+
+    // Check for min/max constraints
+    const minVal = parseFloat(xInput.min); // Assuming same constraints for X and Y
+    const maxVal = parseFloat(xInput.max);
+
+    let coordX = mmX;
+    let coordY = mmY;
+
+    // Normalize if the parameter uses -1 to 1 range
+    const needsNormalization = !isNaN(minVal) && !isNaN(maxVal) &&
+        (minVal === -1 && maxVal === 1);
+
+    if (needsNormalization) {
+        // Calculate the max dimension for uniform scaling
+        const maxDimension = Math.max(boundsWidth, boundsHeight) / 2;
+
+        // Normalize to -1 to 1 range relative to center
+        coordX = (mmX - boundsMiddleX) / maxDimension;
+        coordY = (mmY - boundsMiddleY) / maxDimension;
+
+        // Clamp to -1 to 1 range
+        coordX = Math.max(-1, Math.min(1, coordX));
+        coordY = Math.max(-1, Math.min(1, coordY));
+    } else {
+        // For non-normalized coordinates, just clamp if needed
+        if (!isNaN(minVal)) {
+            coordX = Math.max(minVal, coordX);
+            coordY = Math.max(minVal, coordY);
+        }
+        if (!isNaN(maxVal)) {
+            coordX = Math.min(maxVal, coordX);
+            coordY = Math.min(maxVal, coordY);
+        }
+    }
+
+    // Update input fields
+    xInput.value = coordX.toFixed(2);
+    yInput.value = coordY.toFixed(2);
+
+    // Trigger change events to update visualization
+    xInput.dispatchEvent(new Event('change'));
+    yInput.dispatchEvent(new Event('change'));
+
+    showNotification(`Coordinate for ${formatParameterName(g_currentPickingParam)} set to (${coordX.toFixed(2)}, ${coordY.toFixed(2)})`, false, 'success');
+
+    // Exit coordinate picking mode
+    exitCoordinatePicker();
 }
 
 function showNotification(message, isError = false, type = null) {
@@ -2647,6 +2809,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (g_crosshairMode) {
                 exitCrosshairMode();
                 showNotification('Center selection cancelled', false, 'info');
+            } else if (g_coordinatePickingMode) {
+                exitCoordinatePicker();
+                showNotification('Coordinate selection cancelled', false, 'info');
             } else if (document.getElementById('export-modal').style.display !== 'none') {
                 closeExportModal();
             } else if (document.getElementById('import-modal').style.display !== 'none') {
@@ -2656,6 +2821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initCentroidUI();
+    initPickerFunctionality();
 
     // Initial population and visualization
     populateShaderSelect();

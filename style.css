@@ -138,6 +138,50 @@ input[type="range"] {
     flex: 1;
 }
 
+.coordinate-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.coordinate-input-group {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.coordinate-label {
+    width: 20px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.coordinate-input-group input {
+    flex: 1;
+}
+
+.coordinate-pick-button {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+}
+
+.coordinate-pick-button:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.coordinate-pick-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 button {
     padding: 8px 16px;
     background-color: var(--primary-color);
