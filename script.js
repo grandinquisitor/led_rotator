@@ -2124,7 +2124,8 @@ function updateVisualization() {
                 };
             } else {
                 const input = document.getElementById(`param-${param.name}`);
-                shaderParams[param.name] = parseFloat(input?.value) || param.defaultValue;
+                const parsedValue = parseFloat(input?.value);
+                shaderParams[param.name] = !isNaN(parsedValue) ? parsedValue : param.defaultValue;
             }
         });
     }
