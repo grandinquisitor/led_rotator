@@ -707,7 +707,7 @@ registerShader(
 registerShader("polar_gradient", "Creates a gradient rotation pattern by blending radial angle with distance-based effects.",
     [
         p('angular_offset', ParamTypes.ANGLE, 0, "Fixed angular offset applied to all LEDs.",
-            { min: 0, max: Math.PI, step: Math.PI / 180 }),
+            { min: -Math.PI / 2, max: Math.PI / 2, step: Math.PI / 180 * 5 }),
         p('radial_intensity', ParamTypes.PERCENT, 0, "How strongly distance from center influences rotation angle."),
         p('center_weighted', ParamTypes.BOOLEAN, false, "When enabled, LEDs closer to center receive stronger effect."),
     ],
