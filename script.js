@@ -381,7 +381,10 @@ const globalParams = [
         { min: -Math.PI / 2, max: Math.PI / 2, step: Math.PI / 180 * 5 }),
     p('quantize', ParamTypes.ANGLE, 0,
         "Round final angle to nearest multiple of this value (0 = no quantization).",
-        { min: 0, max: Math.PI / 2, step: Math.PI / 16 })
+        { min: 0, max: Math.PI / 2, step: Math.PI / 16 }),
+    p('noise_blend', ParamTypes.PERCENT, 0,
+        "Blend random noise into the calculated angles for a more organic look.",
+        { min: 0, max: .75, step: 0.025 })
 ];
 
 const shaderRegistry = {};
@@ -1563,6 +1566,13 @@ function calculateAngles(points, rotationFormula, globalParams = {}) {
         // Apply quantization if enabled
         if (globalParams.quantize > 0) {
             angleRad = Math.round(angleRad / globalParams.quantize) * globalParams.quantize;
+        }
+
+        if (globalParams.noise_blend > 0) {
+            // Generate a random angle between 0 and π
+            const randomAngle = Math.random() * Math.PI;
+            // Blend the calculated angle with the random angle based on noise_blend factor
+            angleRad = (1 - globalParams.noise_blend) * angleRad + globalParams.noise_blend * randomAngle;
         }
 
         let angleDeg = (angleRad * 180 / Math.PI) % 360;
