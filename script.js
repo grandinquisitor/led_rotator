@@ -431,21 +431,22 @@ registerShader("radial_wave",
         args.radial_angle + Math.sin(args.radius * params.frequency) * params.amplitude
 );
 
-registerShader("radial_rays", "Orients LEDs to point directly away from the center, creating a radiating star pattern.",
-    [],
-    (args) => args.radial_angle);
+registerShader("radial_rays", "Orients LEDs relative to their radial angle from the centroid.",
+    [
+        p('counter_rotate', ParamTypes.BOOLEAN, false,
+            "When enabled, LEDs rotate in the counter-clockwise direction.")
+    ],
+    (args, params) => args.radial_angle * (params.counter_rotate ?  -1 : 1)
+);
 
 registerShader(
     "radial_orbit",
     "Orients LEDs perpendicular to the radius, creating a circular flow pattern around the center.",
     [
         p('counter_rotate', ParamTypes.BOOLEAN, false,
-            "When enabled, LEDs rotate in the counter-clockwise direction (default is clockwise).")
+            "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
-    (args, params) =>
-        params.counter_rotate ?
-            -args.radial_angle + Math.PI / 2 :
-            args.radial_angle + Math.PI / 2
+    (args, params) => (params.counter_rotate ? -1 : 1) * args.radial_angle + Math.PI / 2
 );
 
 // Spiral Rotation: Creates a spiral by increasing the rotation with distance.
