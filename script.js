@@ -433,21 +433,15 @@ registerShader("radial_wave",
 );
 
 registerShader("radial_rays", "Orients LEDs relative to their radial angle from the centroid.",
-    [
-        p('counter_rotate', ParamTypes.BOOLEAN, false,
-            "When enabled, LEDs rotate in the counter-clockwise direction.")
-    ],
-    (args, params) => args.radial_angle * (params.counter_rotate ? -1 : 1)
+    [],
+    (args, params) => args.radial_angle
 );
 
 registerShader(
     "radial_orbit",
     "Orients LEDs perpendicular to the radius, creating a circular flow pattern around the center.",
-    [
-        p('counter_rotate', ParamTypes.BOOLEAN, false,
-            "When enabled, LEDs rotate in the counter-clockwise direction.")
-    ],
-    (args, params) => (params.counter_rotate ? -1 : 1) * args.radial_angle + Math.PI / 2
+    [],
+    (args, params) => args.radial_angle + Math.PI / 2
 );
 
 // Spiral Rotation: Creates a spiral by increasing the rotation with distance.
@@ -514,11 +508,10 @@ registerShader(
         p('phase_shift', ParamTypes.ANGLE, Math.PI / 2,
             "Fixed angular offset applied when a pulse occurs, shifting the rotation.",
             { min: 0, max: 2 * Math.PI, step: Math.PI / 180 }),
-        p('counter_rotate', ParamTypes.BOOLEAN, false, "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
     (args, params) => {
         const pulse = Math.floor(args.radius * params.pulse_count / params.scaling);
-        return (params.counter_rotate ? -1 : 1) * args.radial_angle + (pulse % 2) * params.phase_shift;
+        return args.radial_angle + (pulse % 2) * params.phase_shift;
     });
 
 registerShader(
@@ -717,10 +710,9 @@ registerShader("polar_gradient", "Creates a gradient rotation pattern by blendin
             { min: 0, max: Math.PI, step: Math.PI / 180 }),
         p('radial_intensity', ParamTypes.PERCENT, 0, "How strongly distance from center influences rotation angle."),
         p('center_weighted', ParamTypes.BOOLEAN, false, "When enabled, LEDs closer to center receive stronger effect."),
-        p('counter_rotate', ParamTypes.BOOLEAN, false, "When enabled, LEDs rotate in the counter-clockwise direction.")
     ],
     (args, params) =>
-        (params.counter_rotate ? -1 : 1) * args.radial_angle + params.angular_offset + (2 * Math.PI * (params.center_weighted ? 1 - args.radius : args.radius) * params.radial_intensity)
+        args.radial_angle + params.angular_offset + (2 * Math.PI * (params.center_weighted ? 1 - args.radius : args.radius) * params.radial_intensity)
 );
 
 // Flower Pattern: Creates a petal-like pattern using sinusoidal modulation.
@@ -896,11 +888,10 @@ registerShader(
     [
         p('growth_rate', ParamTypes.NUMBER, 0.2,
             "Controls how tightly the spiral winds (larger values create tighter spirals).",
-            { min: 0.1, max: 8, step: 0.1 }),
-        p('counter_rotate', ParamTypes.BOOLEAN, false, "When enabled, LEDs rotate in the counter-clockwise direction.")
+            { min: 0.1, max: 8, step: 0.1 })
     ],
     (args, params) =>
-        (params.counter_rotate ? -1 : 1) * args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
+        args.radial_angle + params.growth_rate * Math.log(args.radius + 1)
 );
 
 registerShader(
