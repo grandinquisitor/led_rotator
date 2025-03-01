@@ -40,6 +40,8 @@ body {
     box-shadow: var(--shadow);
     padding: 20px;
     height: fit-content;
+    width: 300px;
+    position: relative;
 }
 
 .header {
@@ -145,13 +147,24 @@ button.share-btn:hover {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+
+    position: fixed;
+    left: 340px;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: calc(100vw - 380px);
+    min-height: 600px;
+    max-height: 90vh;
 }
 
 canvas {
     border: 1px solid var(--border-color);
     border-radius: 4px;
+    width: 800px;
+    height: 600px;
     max-width: 100%;
-    height: auto;
+    max-height: 80vh;
 }
 
 /* Modal styling */
