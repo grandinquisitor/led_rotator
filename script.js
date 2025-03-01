@@ -2081,9 +2081,6 @@ function resetParameters(params, idPrefix, notify = true) {
         }
     });
 
-    // Update visualization
-    updateVisualization();
-
     // Show notification if requested
     if (notify) {
         showNotification('Parameters reset to default values', false, 'success');
