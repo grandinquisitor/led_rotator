@@ -395,6 +395,9 @@ function registerShader(name, description, paramDefs, shaderFn) {
     if (typeof name !== 'string') {
         throw new TypeError("Shader name must be a string.");
     }
+    if (name in shaderRegistry) {
+        throw new Error(`Shader "${name}" is already registered`);
+    }
     if (typeof description !== 'string' && description !== null) {
         throw new TypeError("Shader description must be a string or null.");
     }
@@ -405,11 +408,15 @@ function registerShader(name, description, paramDefs, shaderFn) {
         throw new TypeError("Shader function must be a function.");
     }
 
-    // Optionally, you can also check that each item in paramDefs is a Param object
+    let paramNames = new Set();
     paramDefs.forEach(param => {
         if (!(param instanceof Param)) {
             throw new TypeError("Each parameter definition must be a Param object.");
         }
+        if (paramNames.has(param.name)) {
+            throw new Error(`Duplicate parameter name "${param.name}" in shader "${name}".`);
+        }
+        paramNames.add(param.name);
     });
 
     shaderRegistry[name] = { params: paramDefs, fn: shaderFn, desc: description };
