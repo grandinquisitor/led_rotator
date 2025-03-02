@@ -2004,6 +2004,8 @@ function setRangeAttributes(input, param) {
         input.step = 1;
     } else if (param.paramType === ParamTypes.PERCENT) {
         input.step = 0.05;
+    } else if (param.paramType === ParamTypes.ANGLE) {
+        input.step = Math.PI / 180; // 1 degree
     }
 
     // Set default min/max for specific parameter types
